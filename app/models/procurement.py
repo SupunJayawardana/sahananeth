@@ -9,7 +9,8 @@ class ProcurementRequest(db.Model):
     requested_sku = db.Column(db.String(120), nullable=False)
     quantity_needed = db.Column(db.Integer, nullable=False)
     status_state = db.Column(
-        db.Enum('pending', 'approved', 'fulfilled', 'rejected'),
+        db.Enum('pending', 'approved', 'fulfilled', 'rejected',
+                name='procurement_status_enum'),
         default='pending'
     )
     fulfilled_warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouses.id'), nullable=True)

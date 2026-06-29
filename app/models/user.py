@@ -11,11 +11,12 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role_level = db.Column(
-        db.Enum('super_admin', 'gov_officer', 'field_officer', 'citizen'),
-        nullable=False
-    )
+    db.Enum('super_admin', 'gov_officer', 'field_officer', 'citizen',
+            name='user_role_enum'),
+    nullable=False
+)
     status = db.Column(
-        db.Enum('pending', 'active', 'needs_verification', 'verified', 'rejected'),
+        db.Enum('pending', 'active', 'needs_verification', 'verified', 'rejected',name='user_status_enum'),
         default='pending',
         nullable=False
     )

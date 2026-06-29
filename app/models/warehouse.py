@@ -9,7 +9,8 @@ class Warehouse(db.Model):
     longitude = db.Column(db.Float, nullable=False)
 
     # Relationship — one warehouse has many stock items
-    stock_items = db.relationship('InventoryStock', backref='warehouse', lazy=True)
+   # stock_items = db.relationship('InventoryStock', backref='warehouse', lazy=True)
+    inventory = db.relationship('InventoryStock', backref='warehouse')
 
     def __repr__(self):
         return f'<Warehouse {self.warehouse_name}>'
