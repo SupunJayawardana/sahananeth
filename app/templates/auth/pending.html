@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Pending Approval{% endblock %}
+{% block main_class %}flex items-center justify-center min-h-screen{% endblock %}
+
+{% block content %}
+<div class="bg-white shadow-lg rounded-xl p-8 w-full max-w-md text-center">
+    <div class="text-5xl mb-4">⏳</div>
+    <h1 class="text-2xl font-bold text-yellow-600 mb-2">Account Pending Approval</h1>
+    <p class="text-gray-500 text-sm mb-6">
+        Your account is under review. You will be able to access the system once an administrator approves your registration.
+    </p>
+    <a href="/auth/logout"
+        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg text-sm">
+        Logout
+    </a>
+</div>
+{% endblock %}

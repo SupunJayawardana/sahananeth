@@ -1,8 +1,8 @@
-"""initial tables
+"""initial schema
 
-Revision ID: 2a963faa58ee
+Revision ID: 112e0a2d4791
 Revises: 
-Create Date: 2026-06-28 20:58:13.860681
+Create Date: 2026-06-29 18:19:18.628205
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '2a963faa58ee'
+revision = '112e0a2d4791'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,9 +30,12 @@ def upgrade():
     op.create_table('users',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=80), nullable=False),
+    sa.Column('full_name', sa.String(length=150), nullable=True),
     sa.Column('password_hash', sa.String(length=256), nullable=False),
-    sa.Column('role_level', sa.Enum('citizen', 'field_officer', 'gov_officer'), nullable=False),
+    sa.Column('role_level', sa.Enum('super_admin', 'gov_officer', 'field_officer', 'citizen'), nullable=False),
+    sa.Column('status', sa.Enum('pending', 'active', 'needs_verification', 'verified', 'rejected'), nullable=False),
     sa.Column('assigned_node_id', sa.Integer(), nullable=True),
+    sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
