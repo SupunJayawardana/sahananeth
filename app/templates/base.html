@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAHANANETH — {% block title %}{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Navbar (only shown when logged in) -->
+    {% if current_user.is_authenticated %}
+    <nav class="bg-blue-800 text-white px-6 py-4 flex justify-between items-center shadow">
+        <span class="font-bold text-lg tracking-wide">🛡️ SAHANANETH</span>
+        <div class="flex gap-4 items-center text-sm">
+            <span>{{ current_user.username }} 
+                <span class="bg-blue-600 px-2 py-0.5 rounded text-xs ml-1">
+                    {{ current_user.role_level.replace('_', ' ').title() }}
+                </span>
+            </span>
+            <a href="/auth/logout" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded">Logout</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="max-w-md mx-auto mt-4 space-y-2">
+                {% for category, message in messages %}
+                    <div class="px-4 py-3 rounded text-sm font-medium
+                        {% if category == 'danger' %} bg-red-100 text-red-700 border border-red-300
+                        {% elif category == 'success' %} bg-green-100 text-green-700 border border-green-300
+                        {% else %} bg-blue-100 text-blue-700 border border-blue-300 {% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- Page content -->
+    <main class="{% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>
