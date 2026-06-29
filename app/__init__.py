@@ -6,17 +6,21 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
 
-    # Register blueprints
-    from app.routes.auth import auth_bp
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    from app import models
 
-    # Load models so Flask-Migrate can see them
-    with app.app_context():
-        from app import models  # noqa: F401
+    # Register all blueprints
+    from app.routes.auth import auth_bp
+    from app.routes.citizen import citizen_bp
+    from app.routes.field_officer import field_bp
+    from app.routes.gov_officer import gov_bp
+
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(citizen_bp, url_prefix='/citizen')
+    app.register_blueprint(field_bp, url_prefix='/field')
+    app.register_blueprint(gov_bp, url_prefix='/gov')
 
     return app
