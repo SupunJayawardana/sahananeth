@@ -1,17 +1,551 @@
 {% extends "base.html" %}
+
 {% block title %}Pending Approval{% endblock %}
-{% block main_class %}flex items-center justify-center min-h-screen{% endblock %}
+
+
+{% block main_class %}
+flex items-center justify-center min-h-screen
+{% endblock %}
+
+
 
 {% block content %}
-<div class="bg-white shadow-lg rounded-xl p-8 w-full max-w-md text-center">
-    <div class="text-5xl mb-4">⏳</div>
-    <h1 class="text-2xl font-bold text-yellow-600 mb-2">Account Pending Approval</h1>
-    <p class="text-gray-500 text-sm mb-6">
-        Your account is under review. You will be able to access the system once an administrator approves your registration.
-    </p>
-    <a href="/auth/logout"
-        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2 rounded-lg text-sm">
-        Logout
-    </a>
+
+
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Lato:wght@400;500;700&display=swap" rel="stylesheet">
+
+
+
+<style>
+
+*{
+    font-family:'Lato',sans-serif;
+}
+
+
+
+/* Background */
+
+.pending-background{
+
+
+    background:
+
+
+    linear-gradient(
+
+        135deg,
+
+        #dbeafe,
+
+        #c7d2fe,
+
+        #e0f2fe
+
+    );
+
+
+}
+
+
+
+
+
+
+
+
+/* Frame */
+
+
+.frame-box{
+
+
+    padding:3px;
+
+
+    border-radius:30px;
+
+
+
+    background:
+
+
+    linear-gradient(
+
+        120deg,
+
+        #38bdf8,
+
+        #2563eb,
+
+        #8b5cf6,
+
+        #06b6d4
+
+    );
+
+
+
+    box-shadow:
+
+
+    0 0 25px
+
+    rgba(56,189,248,.45);
+
+
+
+    animation:
+
+
+    cardFloat 5s infinite ease-in-out;
+
+
+}
+
+
+
+
+
+
+
+@keyframes cardFloat{
+
+
+0%,100%{
+
+
+    transform:
+
+
+    translateY(0)
+
+    scale(1);
+
+
+
+    box-shadow:
+
+
+    0 0 25px
+
+    rgba(56,189,248,.35);
+
+
+
+}
+
+
+
+
+50%{
+
+
+    transform:
+
+
+    translateY(-8px)
+
+    scale(1.01);
+
+
+
+    box-shadow:
+
+
+    0 0 40px
+
+    rgba(124,58,237,.5);
+
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+
+
+/* Card */
+
+
+.pending-card{
+
+
+    background:
+
+
+    linear-gradient(
+
+        145deg,
+
+        #334155,
+
+        #475569
+
+    );
+
+
+    border-radius:27px;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* Icon */
+
+
+.pending-icon{
+
+
+    animation:
+
+
+    iconMove 3s infinite ease-in-out;
+
+
+
+    filter:
+
+
+    drop-shadow(
+
+    0 0 15px
+
+    #facc15
+
+    );
+
+
+}
+
+
+
+
+
+
+
+@keyframes iconMove{
+
+
+0%,100%{
+
+
+    transform:
+
+
+    translateY(0);
+
+
+}
+
+
+
+50%{
+
+
+    transform:
+
+
+    translateY(-10px)
+
+    rotate(8deg);
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+
+
+/* Title */
+
+
+.pending-title{
+
+
+    font-family:'Orbitron',sans-serif;
+
+
+    letter-spacing:2px;
+
+
+
+    background:
+
+
+    linear-gradient(
+
+        90deg,
+
+        #facc15,
+
+        #fb923c
+
+    );
+
+
+
+    -webkit-background-clip:text;
+
+
+    -webkit-text-fill-color:transparent;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* Text */
+
+
+.pending-text{
+
+
+    color:#e2e8f0;
+
+
+    line-height:1.7;
+
+
+}
+
+
+
+
+
+
+
+
+
+/* Logout Button */
+
+
+.logout-button{
+
+
+    background:
+
+
+    linear-gradient(
+
+        90deg,
+
+        #64748b,
+
+        #475569
+
+    );
+
+
+
+    transition:.4s;
+
+
+}
+
+
+
+
+.logout-button:hover{
+
+
+    transform:
+
+
+    translateY(-3px);
+
+
+
+    box-shadow:
+
+
+    0 10px 25px
+
+    rgba(0,0,0,.3);
+
+
+
+}
+
+
+
+
+
+
+</style>
+
+
+
+
+
+
+
+
+
+<div class="pending-background
+
+min-h-screen
+
+w-full
+
+flex
+
+items-center
+
+justify-center
+
+px-4">
+
+
+
+
+
+
+
+<div class="frame-box">
+
+
+
+
+
+
+
+<div class="pending-card
+
+p-7
+
+w-full
+
+max-w-sm
+
+text-center">
+
+
+
+
+
+
+
+<!-- Icon -->
+
+
+<div class="pending-icon text-6xl mb-4">
+
+⏳
+
 </div>
+
+
+
+
+
+
+
+
+<h1 class="pending-title text-2xl font-extrabold mb-3">
+
+Account Pending Approval
+
+</h1>
+
+
+
+
+
+
+
+
+<p class="pending-text text-sm mb-6">
+
+
+Your account is under review. You will be able to access the system once an administrator approves your registration.
+
+
+</p>
+
+
+
+
+
+
+
+
+
+<a href="/auth/logout"
+
+class="logout-button
+
+inline-block
+
+text-white
+
+font-semibold
+
+text-sm
+
+px-6
+
+py-2.5
+
+rounded-xl">
+
+
+Logout
+
+
+</a>
+
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+</div>
+
+
+
 {% endblock %}
