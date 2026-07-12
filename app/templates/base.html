@@ -11,7 +11,12 @@
     <!-- Navbar (only shown when logged in) -->
     {% if current_user.is_authenticated %}
     <nav class="bg-blue-800 text-white px-6 py-4 flex justify-between items-center shadow">
-        <span class="font-bold text-lg tracking-wide">🛡️ SAHANANETH</span>
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-lg font-bold overflow-hidden">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SAHANANETH logo" class="w-full h-full object-cover" onerror="this.style.display='none'; this.parentElement.innerHTML='🏠';">
+            </div>
+            <span class="font-bold text-lg tracking-wide">SAHANANETH</span>
+        </div>
         <div class="flex gap-4 items-center text-sm">
             <span>{{ current_user.username }} 
                 <span class="bg-blue-600 px-2 py-0.5 rounded text-xs ml-1">
