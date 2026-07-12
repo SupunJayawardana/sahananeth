@@ -2,25 +2,41 @@
 {% block title %}Citizen Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10 px-4">
+<div class="max-w-5xl mx-auto mt-10 px-4">
     <h1 class="text-2xl font-bold text-blue-800 mb-2">
         Welcome, {{ current_user.username }} 👋
     </h1>
     <p class="text-gray-500 mb-6">Citizen Portal — SAHANANETH</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="flex gap-3 mb-8 flex-wrap">
+        <a href="/citizen/profile" class="bg-blue-700 hover:bg-blue-800 text-white text-sm px-5 py-2 rounded-lg">Fill Profile</a>
+        <a href="/citizen/shelter/request" class="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded-lg">Request Shelter Registration</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
             <p class="text-sm text-gray-500">My Verification Status</p>
-            <p class="text-xl font-bold text-blue-700 mt-1">Pending</p>
+            <p class="text-xl font-bold text-blue-700 mt-1">{% if profile and profile.is_verified %}Verified{% else %}Pending{% endif %}</p>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
             <p class="text-sm text-gray-500">Assigned Shelter</p>
-            <p class="text-xl font-bold text-green-700 mt-1">Not Assigned</p>
+            <p class="text-xl font-bold text-green-700 mt-1">{% if profile and profile.allocated_shelter %}{{ profile.allocated_shelter.shelter_name }}{% else %}Not Assigned{% endif %}</p>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500">
-            <p class="text-sm text-gray-500">Active Alerts</p>
-            <p class="text-xl font-bold text-yellow-700 mt-1">0</p>
+            <p class="text-sm text-gray-500">Pending Requests</p>
+            <p class="text-xl font-bold text-yellow-700 mt-1">{{ pending_requests|length }}</p>
         </div>
     </div>
+
+    {% if pending_requests %}
+    <div class="bg-white rounded-xl shadow p-5">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">Pending Shelter Requests</h2>
+        <ul class="space-y-2 text-sm text-gray-600">
+            {% for req in pending_requests %}
+            <li class="border-b pb-2">{{ req.shelter.shelter_name }} · Status: {{ req.status.title() }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

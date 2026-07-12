@@ -8,57 +8,143 @@
     </h1>
     <p class="text-gray-500 mb-8">Government Officer Portal — SAHANANETH</p>
 
-    <!-- Stats Row -->
+    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
-            <p class="text-sm text-gray-500">Total Citizens</p>
-            <p class="text-2xl font-bold text-blue-700 mt-1">
-                {{ pending_field_officers|length }}
-            </p>
-        </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500">
             <p class="text-sm text-gray-500">Pending Field Officers</p>
-            <p class="text-2xl font-bold text-yellow-700 mt-1">
-                {{ pending_field_officers|length }}
-            </p>
+            <p class="text-2xl font-bold text-yellow-700 mt-1">{{ pending_field_officers|length }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+            <p class="text-sm text-gray-500">Pending Shelters</p>
+            <p class="text-2xl font-bold text-blue-700 mt-1">{{ pending_shelters|length }}</p>
         </div>
         <div class="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
             <p class="text-sm text-gray-500">My Status</p>
-            <p class="text-2xl font-bold text-green-700 mt-1 capitalize">
-                {{ current_user.status }}
-            </p>
+            <p class="text-2xl font-bold text-green-700 mt-1 capitalize">{{ current_user.status }}</p>
         </div>
+        
     </div>
 
-    <!-- Pending Field Officer Approvals -->
+    <!-- Quick Actions -->
+<div class="flex gap-3 mb-8 flex-wrap">
+    <a href="/gov/procurement"
+        class="bg-blue-700 hover:bg-blue-800 text-white text-sm px-5 py-2 rounded-lg">
+        Procurement Requests
+    </a>
+    <a href="/gov/warehouses"
+        class="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded-lg">
+        Manage Warehouses
+    </a>
+    <a href="/gov/warehouse-managers"
+        class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-5 py-2 rounded-lg">
+        Warehouse Managers
+    </a>
+    <a href="/warehouse/catalog"
+        class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-5 py-2 rounded-lg">
+        Product Catalog
+    </a>
+</div>
+
+    <!-- Pending Field Officers -->
     <h2 class="text-lg font-semibold text-gray-700 mb-3">
-        Field Officer Approval Requests
+        Pending Field Officer Approvals
         <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full ml-1">
-            {{ pending_field_officers|length }} pending
+            {{ pending_field_officers|length }}
         </span>
     </h2>
 
     {% if pending_field_officers %}
-    <div class="space-y-3">
+    <div class="space-y-3 mb-8">
         {% for user in pending_field_officers %}
         <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
             <div>
-                <p class="font-semibold text-gray-800">
-                    {{ user.full_name or user.username }}
-                </p>
-                <p class="text-sm text-gray-500">
-                    @{{ user.username }} — Field Officer
-                </p>
+                <p class="font-semibold text-gray-800">{{ user.full_name or user.username }}</p>
+                <p class="text-sm text-gray-500">@{{ user.username }} — Field Officer</p>
                 <p class="text-xs text-gray-400 mt-0.5">
                     Registered: {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
                 </p>
             </div>
             <div class="flex gap-2">
-                <a href="/gov/approve/{{ user.id }}"
+                <a href="/gov/approve/field-officer/{{ user.id }}"
                     class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg">
                     Approve
                 </a>
-                <a href="/gov/reject/{{ user.id }}"
+                <a href="/gov/reject/field-officer/{{ user.id }}"
+                    class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-1.5 rounded-lg">
+                    Reject
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400 mb-8">
+        No pending Field Officer approvals. ✅
+    </div>
+    {% endif %}
+
+    <!-- Pending Shelter Registrations -->
+    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+        Pending Citizen Shelter Registrations
+        <span class="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full ml-1">
+            {{ pending_registrations|length }}
+        </span>
+    </h2>
+
+    {% if pending_registrations %}
+    <div class="space-y-3 mb-8">
+        {% for req in pending_registrations %}
+        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+            <div>
+                <p class="font-semibold text-gray-800">{{ req.full_name }}</p>
+                <p class="text-sm text-gray-500">{{ req.identification_number }} · {{ req.shelter.shelter_name }}</p>
+                {% if req.notes %}<p class="text-xs text-gray-400 mt-0.5">{{ req.notes }}</p>{% endif %}
+            </div>
+            <div class="flex gap-2">
+                <a href="/gov/registrations/approve/{{ req.id }}" class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg">Approve</a>
+                <a href="/gov/registrations/reject/{{ req.id }}" class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-1.5 rounded-lg">Reject</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400 mb-8">No pending citizen shelter registrations.</div>
+    {% endif %}
+
+    <!-- Pending Shelters -->
+    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+        Pending Shelter Approvals
+        <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full ml-1">
+            {{ pending_shelters|length }}
+        </span>
+    </h2>
+
+    {% if pending_shelters %}
+    <div class="space-y-3">
+        {% for shelter in pending_shelters %}
+        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+            <div>
+                <p class="font-semibold text-gray-800">{{ shelter.shelter_name }}</p>
+                <p class="text-sm text-gray-500">
+                    Capacity: {{ shelter.maximum_capacity }} persons
+                    {% if shelter.address %} · {{ shelter.address }}{% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    Submitted by: {{ shelter.created_by.username }}
+                    · {{ shelter.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+                {% if shelter.latitude and shelter.longitude %}
+                <p class="text-xs text-gray-400">
+                    📍 {{ shelter.latitude }}, {{ shelter.longitude }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="flex gap-2">
+                <a href="/gov/approve/shelter/{{ shelter.id }}"
+                    class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg">
+                    Approve
+                </a>
+                <a href="/gov/reject/shelter/{{ shelter.id }}"
                     class="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-1.5 rounded-lg">
                     Reject
                 </a>
@@ -68,7 +154,7 @@
     </div>
     {% else %}
     <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
-        No pending Field Officer requests at the moment.
+        No pending shelter approvals. ✅
     </div>
     {% endif %}
 </div>
