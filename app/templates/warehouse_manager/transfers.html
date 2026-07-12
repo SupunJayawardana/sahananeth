@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Stock Transfers{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto mt-10 px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-800">Stock Transfers</h1>
+        <a href="/warehouse/dashboard" class="text-sm text-blue-600 hover:underline">← Dashboard</a>
+    </div>
+
+    <!-- Initiate Transfer -->
+    <div class="bg-white rounded-xl shadow p-6 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Initiate New Transfer</h2>
+        <form method="POST" action="/warehouse/transfers/initiate" class="space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">From (Your Warehouse)</label>
+                    <select name="from_warehouse_id" required id="from_warehouse"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>Select source warehouse</option>
+                        {% for w in my_warehouses %}
+                        <option value="{{ w.id }}">{{ w.warehouse_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">To Warehouse</label>
+                    <select name="to_warehouse_id" required
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="" disabled selected>Select destination</option>
+                        {% for w in all_warehouses %}
+                        <option value="{{ w.id }}">{{ w.warehouse_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Item (SKU Name)</label>
+                    <input type="text" name="sku_name" required
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. Rice">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Quantity</label>
+                    <input type="number" name="quantity" required min="1"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g. 50">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-500 mb-1">Notes (optional)</label>
+                    <input type="text" name="notes"
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Reason for transfer">
+                </div>
+            </div>
+            <button type="submit"
+                class="bg-blue-700 hover:bg-blue-800 text-white text-sm px-5 py-2 rounded-lg">
+                Initiate Transfer
+            </button>
+        </form>
+    </div>
+
+    <!-- Incoming transfers to confirm -->
+    {% set pending_incoming = incoming | selectattr('status', 'equalto', 'dispatched') | list %}
+    {% if pending_incoming %}
+    <h2 class="text-lg font-semibold text-gray-700 mb-3">
+        Incoming — Awaiting Confirmation
+        <span class="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full ml-1">
+            {{ pending_incoming|length }}
+        </span>
+    </h2>
+    <div class="space-y-3 mb-8">
+        {% for t in pending_incoming %}
+        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center
+            border-l-4 border-yellow-400">
+            <div>
+                <p class="font-semibold text-gray-800">
+                    {{ t.sku_name }}
+                    <span class="text-gray-500 font-normal text-sm">
+                        × {{ t.quantity }} {{ t.metric_unit }}
+                    </span>
+                </p>
+                <p class="text-sm text-gray-500 mt-0.5">
+                    From: {{ t.from_warehouse.warehouse_name }}
+                </p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    {{ t.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% if t.notes %} · {{ t.notes }}{% endif %}
+                </p>
+            </div>
+            <form method="POST" action="/warehouse/transfers/confirm/{{ t.id }}">
+                <button type="submit"
+                    class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded-lg">
+                    Confirm Receipt
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Outgoing -->
+    <h2 class="text-lg font-semibold text-gray-700 mb-3">Outgoing Transfers</h2>
+    {% if outgoing %}
+    <div class="space-y-2 mb-8">
+        {% for t in outgoing %}
+        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+            <div>
+                <p class="font-semibold text-gray-800">
+                    {{ t.sku_name }} × {{ t.quantity }} {{ t.metric_unit }}
+                </p>
+                <p class="text-sm text-gray-500">To: {{ t.to_warehouse.warehouse_name }}</p>
+                <p class="text-xs text-gray-400">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full
+                {% if t.status == 'dispatched' %}bg-yellow-100 text-yellow-700
+                {% elif t.status == 'confirmed' %}bg-green-100 text-green-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ t.status.title() }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400 mb-8">
+        No outgoing transfers yet.
+    </div>
+    {% endif %}
+
+    <!-- All Incoming -->
+    <h2 class="text-lg font-semibold text-gray-700 mb-3">All Incoming Transfers</h2>
+    {% if incoming %}
+    <div class="space-y-2">
+        {% for t in incoming %}
+        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+            <div>
+                <p class="font-semibold text-gray-800">
+                    {{ t.sku_name }} × {{ t.quantity }} {{ t.metric_unit }}
+                </p>
+                <p class="text-sm text-gray-500">From: {{ t.from_warehouse.warehouse_name }}</p>
+                <p class="text-xs text-gray-400">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full
+                {% if t.status == 'dispatched' %}bg-yellow-100 text-yellow-700
+                {% elif t.status == 'confirmed' %}bg-green-100 text-green-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ t.status.title() }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
+        No incoming transfers yet.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

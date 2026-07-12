@@ -46,7 +46,7 @@ def register():
         role = request.form.get('role')
 
         # Only allow staff roles here
-        if role not in ('gov_officer', 'field_officer'):
+        if role not in ('gov_officer', 'field_officer', 'warehouse_manager'):
             flash('Invalid role selected.', 'danger')
             return redirect(url_for('auth.register'))
 
@@ -88,7 +88,6 @@ def logout():
 @auth_bp.route('/dashboard')
 @login_required
 def dashboard():
-    """Central redirect — sends each role to their own dashboard."""
     if current_user.role_level == 'super_admin':
         return redirect(url_for('admin.dashboard'))
     elif current_user.role_level == 'gov_officer':
@@ -99,5 +98,9 @@ def dashboard():
         if current_user.status == 'pending':
             return redirect(url_for('auth.pending'))
         return redirect(url_for('field.dashboard'))
+    elif current_user.role_level == 'warehouse_manager':
+        if current_user.status == 'pending':
+            return redirect(url_for('auth.pending'))
+        return redirect(url_for('warehouse.dashboard'))
     else:
         return redirect(url_for('citizen.dashboard'))
