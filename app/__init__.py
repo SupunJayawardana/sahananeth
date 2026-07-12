@@ -1,4 +1,5 @@
-from flask import Flask
+from flask import Flask, render_template, redirect, url_for
+from flask_login import current_user
 from config import config
 from app.extensions import db, migrate, login_manager
 
@@ -9,6 +10,14 @@ def create_app(config_name='default'):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    @app.route('/')
+    def index():
+        if current_user.is_authenticated:
+            if current_user.role_level == 'citizen':
+                return redirect(url_for('citizen.dashboard'))
+            return redirect(url_for('auth.dashboard'))
+        return render_template('index.html')
 
     from app import models
 

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Welcome{% endblock %}
+{% block main_class %}min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-600 flex items-center justify-center px-4 py-10{% endblock %}
+
+{% block content %}
+<div class="w-full max-w-6xl mx-auto">
+    <div class="bg-white/95 backdrop-blur rounded-3xl shadow-2xl overflow-hidden">
+        <div class="grid lg:grid-cols-[1.1fr_0.9fr]">
+            <div class="p-8 md:p-12">
+                <div class="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
+                    <span>🏠</span> SAHANANETH Relief Management System
+                </div>
+                <h1 class="mt-6 text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                    A digital platform for shelter, procurement, and citizen support.
+                </h1>
+                <p class="mt-5 text-lg text-gray-600 leading-relaxed">
+                    SAHANANETH helps citizens request shelter support while allowing government officers, field officers, warehouse managers, and administrators to coordinate relief operations smoothly and transparently.
+                </p>
+                <div class="mt-8 grid sm:grid-cols-3 gap-4 text-sm text-gray-700">
+                    <div class="rounded-2xl border border-gray-200 p-4">
+                        <div class="font-semibold text-blue-700">Citizen Service</div>
+                        <div class="mt-1">Request shelter and manage support needs.</div>
+                    </div>
+                    <div class="rounded-2xl border border-gray-200 p-4">
+                        <div class="font-semibold text-blue-700">Field Coordination</div>
+                        <div class="mt-1">Track shelter requests and procurements.</div>
+                    </div>
+                    <div class="rounded-2xl border border-gray-200 p-4">
+                        <div class="font-semibold text-blue-700">Warehouse Oversight</div>
+                        <div class="mt-1">Monitor inventory movement and transfers.</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 p-8 md:p-12 flex flex-col justify-center">
+                <h2 class="text-2xl font-semibold text-gray-900">Choose your portal</h2>
+                <p class="mt-2 text-sm text-gray-600">Select the login experience that matches your role.</p>
+                <div class="mt-6 space-y-4">
+                    <a href="{{ url_for('citizen.login') }}" class="block rounded-2xl border border-blue-200 bg-blue-600 text-white p-5 shadow hover:bg-blue-700 transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-lg font-semibold">Citizen Login</div>
+                                <div class="text-sm text-blue-100">For residents requesting shelter support</div>
+                            </div>
+                            <span class="text-2xl">👤</span>
+                        </div>
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-lg font-semibold text-gray-900">Staff Login</div>
+                                <div class="text-sm text-gray-600">For government, field, and warehouse teams</div>
+                            </div>
+                            <span class="text-2xl">🛡️</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

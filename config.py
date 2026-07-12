@@ -13,12 +13,12 @@ class DevelopmentConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    # Render gives DATABASE_URL starting with postgres:// 
+    # Render gives DATABASE_URL starting with postgres://
     # SQLAlchemy needs postgresql://
     _db_url = os.environ.get('DATABASE_URL', '')
     if _db_url.startswith('postgres://'):
         _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
-    SQLALCHEMY_DATABASE_URI = _db_url
+    SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///sahananeth_local.db'
 
 # This lets you switch modes by changing one word
 config = {
