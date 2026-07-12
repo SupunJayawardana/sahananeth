@@ -11,7 +11,8 @@ class User(UserMixin, db.Model):
     full_name = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role_level = db.Column(
-    db.Enum('super_admin', 'gov_officer', 'field_officer', 'citizen',
+    db.Enum('super_admin', 'gov_officer', 'field_officer', 
+            'warehouse_manager', 'citizen',
             name='user_role_enum'),
     nullable=False
 )
@@ -44,3 +45,4 @@ class User(UserMixin, db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+

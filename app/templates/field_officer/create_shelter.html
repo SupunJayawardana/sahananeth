@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Register Shelter{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 px-4">
+    <h1 class="text-2xl font-bold text-blue-800 mb-1">Register Relief Shelter</h1>
+    <p class="text-gray-500 mb-8">Fill in the shelter details. Location can be auto-detected or entered manually.</p>
+
+    <div class="bg-white rounded-xl shadow p-6">
+        <form method="POST" action="/field/shelter/create" class="space-y-5">
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Shelter Name</label>
+                <input type="text" name="shelter_name" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Negombo North Relief Camp">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input type="text" name="address"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Full address of the shelter">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Maximum Capacity</label>
+                <input type="number" name="maximum_capacity" required min="1"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. 200">
+            </div>
+
+            <!-- GPS Auto-detect -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <button type="button" onclick="getLocation()"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-4 py-2 rounded-lg mb-3 border">
+                    📍 Auto-detect my location
+                </button>
+                <p id="location-status" class="text-xs text-gray-400 mb-2"></p>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Latitude</label>
+                        <input type="text" name="latitude" id="latitude"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g. 7.2906">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Longitude</label>
+                        <input type="text" name="longitude" id="longitude"
+                            class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g. 80.6337">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 rounded-lg transition">
+                Submit for Approval
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function getLocation() {
+    const status = document.getElementById('location-status');
+    if (!navigator.geolocation) {
+        status.textContent = 'Geolocation is not supported by your browser.';
+        return;
+    }
+    status.textContent = 'Detecting location...';
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+            document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+            status.textContent = '✅ Location detected successfully.';
+            status.className = 'text-xs text-green-600 mb-2';
+        },
+        () => {
+            status.textContent = '❌ Could not detect location. Please enter manually.';
+            status.className = 'text-xs text-red-500 mb-2';
+        }
+    );
+}
+</script>
+{% endblock %}

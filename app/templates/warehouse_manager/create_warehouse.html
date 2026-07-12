@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Submit Warehouse{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-blue-800">Submit New Warehouse</h1>
+        <a href="/warehouse/dashboard" class="text-sm text-blue-600 hover:underline">← Back</a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-6">
+        <p class="text-sm text-gray-500 mb-4">
+            Your warehouse submission will be reviewed by a Government Officer or Admin before activation.
+        </p>
+        <form method="POST" action="/warehouse/create" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Warehouse Name</label>
+                <input type="text" name="warehouse_name" required
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Matara South Depot">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <input type="text" name="address"
+                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Full address">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                <button type="button" onclick="getLocation()"
+                    class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm px-4 py-2 rounded-lg mb-2 border">
+                    📍 Auto-detect location
+                </button>
+                <p id="location-status" class="text-xs text-gray-400 mb-2"></p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Latitude</label>
+                        <input type="text" name="latitude" id="latitude"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Longitude</label>
+                        <input type="text" name="longitude" id="longitude"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                </div>
+            </div>
+            <button type="submit"
+                class="w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 rounded-lg">
+                Submit for Approval
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function getLocation() {
+    const status = document.getElementById('location-status');
+    if (!navigator.geolocation) {
+        status.textContent = 'Geolocation not supported.';
+        return;
+    }
+    status.textContent = 'Detecting...';
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            document.getElementById('latitude').value = pos.coords.latitude.toFixed(6);
+            document.getElementById('longitude').value = pos.coords.longitude.toFixed(6);
+            status.textContent = '✅ Location detected.';
+            status.className = 'text-xs text-green-600 mb-2';
+        },
+        () => {
+            status.textContent = '❌ Could not detect. Enter manually.';
+            status.className = 'text-xs text-red-500 mb-2';
+        }
+    );
+}
+</script>
+{% endblock %}
