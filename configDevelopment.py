@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # Reads your .env file automatically
+load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key-change-later')
@@ -20,7 +20,6 @@ class ProductionConfig(Config):
         _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_DATABASE_URI = _db_url
 
-# This lets you switch modes by changing one word
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
