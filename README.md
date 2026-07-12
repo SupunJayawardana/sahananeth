@@ -1,88 +1,169 @@
-# SAHANANETH User Guide
+# 🏛️ SAHANANETH | Disaster Relief Management System
+## 📖 Comprehensive User & Operations Manual
 
-SAHANANETH is a relief-management system for citizens, government officers, field officers, warehouse managers, and administrators. The main entry page lets users choose between the Citizen portal and the Staff portal.
+---
 
-## 1. Access the system
+## 🌐 System Overview
 
-- Open the landing page at `/`
-- Choose one of the two portals:
-  - Citizen Login: for residents requesting shelter support
-  - Staff Login: for government, field, and warehouse teams
+**SAHANANETH** is an integrated, multi-tiered enterprise relief-management framework designed to streamline operations during critical emergency situations. By uniting citizens, ground units, logistics managers, and state administrators into a singular digital ecosystem, the system minimizes response latencies and optimizes resource distribution.
 
-## 2. Sample logins
+---
 
-The sample accounts below are ready for local testing. Use the same password for each sample account:
+## 1. System Architecture & Entry Points
 
-- Password for all sample accounts: `admin1234`
+Upon initializing the platform, users are presented with a unified landing page mapping out two core operations gateways. Selecting a gateway routes the user through targeted authentication streams.
 
-### Citizen portal
-- `citizen1` — sample citizen account
-- `citizen2` — sample citizen account
-- `citizen3` — sample citizen account
-
-### Staff portal
-- `gov1` — government officer
-- `gov2` — government officer
-- `field1` — field officer
-- `field2` — field officer
-- `field3` — field officer
-- `wm1` — warehouse manager
-- `wm2` — warehouse manager
-- `wm3` — warehouse manager
-
-## 3. Main workflow screens
-
-### Landing page
-- Path: `/`
-- Purpose: choose the Citizen or Staff portal
-
-### Citizen workflow
-1. Citizen Login
-   - Path: `/citizen/login`
-   - Use the citizen account to sign in
-2. Citizen Dashboard
-   - Shows active shelters and request status
-3. Citizen Profile
-   - Add or update personal details for verification
-4. Shelter Request Form
-   - Submit a shelter request from the dashboard
-
-### Staff workflow
-1. Staff Login
-   - Path: `/auth/login`
-   - Use a government, field, or warehouse account
-2. Staff Dashboard
-   - Redirects to the correct dashboard based on role
-3. Government Officer Screens
-   - Shelter requests
-   - Procurement pages
-   - Warehouse manager management
-4. Field Officer Screens
-   - Create procurement records
-   - Register citizens
-   - Review shelter and inventory tasks
-5. Warehouse Manager Screens
-   - Catalog view
-   - Warehouse stock view
-   - Transfer history and warehouse actions
-
-## 4. Typical usage flow
-
-- Citizens log in, complete their profile, and submit shelter requests.
-- Government officers review requests and manage procurement needs.
-- Field officers handle support tasks and registration work.
-- Warehouse managers monitor stock, catalog items, and transfers.
-
-## 5. Running locally
-
-From the project folder, start the application with:
-
-```bash
-python run.py
+```
+[ SAHANANETH Core Landing Page (/) ]
+                    │
+     ┌──────────────┴──────────────┐
+     ▼                             ▼
+[ Citizen Portal ]            [ Staff Portal ]
+(/citizen/login)              (/auth/login)
+│                             │
+▼                             ├──────────────────────┬──────────────────────┐
+Shelter Requests              ▼                      ▼                      ▼
+Profile Auditing        [Gov. Officer]          [Field Officer]        [Warehouse Mgr]
+Oversight & Budgets      Ground Intake          Supply Chain
 ```
 
-Then open the app in your browser at:
+### 🛣️ Route & Interface Mapping
 
-```text
-http://127.0.0.1:5000/
+| Interface Component | Access Path | Primary Objective | Target Audience |
+| :--- | :--- | :--- | :--- |
+| **Main Gateway** | `/` | Portal Selection & System Hub | All Users |
+| **Citizen Authentication** | `/citizen/login` | Identity Verification & Access | Displaced Residents / Requestors |
+| **Staff Authentication** | `/auth/login` | Multi-Role Administrative Portal | Gov, Field, & Warehouse Personnel |
+
+---
+
+## 2. Testing Credentials & Simulation Matrix
+
+For sandbox staging, local evaluation, and automated testing, the environment comes pre-configured with the following role accounts.
+
+> 🔑 **Global Verification Password:** `admin1234`
+> *(Applies to all pre-seeded testing accounts across all operational domains)*
+
+### 👥 Citizen Directory
+
+Used to simulate aid requests, tracking, and demographic verification.
+
+- 👤 `citizen1` — Primary Sample Resident Profile
+- 👤 `citizen2` — Secondary Sample Resident Profile
+- 👤 `citizen3` — Tertiary Sample Resident Profile
+
+### 💼 Operational Staff Directory
+
+Used to simulate multi-layered response management, logistics processing, and budget approvals.
+
 ```
+📁 Staff Testing Matrix
+├── 🏛️ Government Branch
+│   ├── 👤 gov1 (Executive Officer / Approver)
+│   └── 👤 gov2 (Executive Officer / Approver)
+│
+├── 🦺 Field Operations Unit
+│   ├── 👤 field1 (On-Site Intake Specialist)
+│   ├── 👤 field2 (On-Site Intake Specialist)
+│   └── 👤 field3 (On-Site Intake Specialist)
+│
+└── 📦 Supply & Logistics Unit
+    ├── 👤 wm1 (Regional Warehouse Manager)
+    ├── 👤 wm2 (Regional Warehouse Manager)
+    └── 👤 wm3 (Regional Warehouse Manager)
+```
+
+---
+
+## 3. Specialized Role Workflows & Screen Maps
+
+### 👥 The Citizen Lifecycle
+
+*Empowering individuals through transparency, tracking, and direct access to safety.*
+
+1. **Secure Onboarding (`/citizen/login`):** Enters the citizen portal via validated registration tokens.
+2. **Central Control Hub:** Displays active regional shelter directories, localized safe zones, real-time capacities, and the live processing stage of submitted applications.
+3. **Profile Auditing:** A critical intake interface where citizens upload essential demographic details required for field team confirmation.
+4. **Relocation Request Interface:** A clean, optimized utility built directly into the dashboard enabling citizens to instantly flag emergency situations and request immediate placement.
+
+---
+
+### 🏛️ The Government Command Console
+
+*High-level operational oversight, policy execution, and fiscal governance.*
+
+```
+[Gov Console] ──► 📥 Review Shelter Requests ──► [Approve / Route / Deny]
+              ──► 💰 Procurement Controls     ──► [Approve Supply Budgets]
+              ──► 👥 Regional Management      ──► [Assign Warehouse Chiefs]
+```
+
+- **Shelter Request Management:** A central console to verify, grant, or modify crisis shelter placements sent by citizens.
+- **Procurement Operations:** Evaluate, authorize, or defer supply requisitions and capital budgets escalated from active field personnel.
+- **Personnel Allocations:** Supervise, onboard, and assign regional Warehouse Managers to active logistics facilities.
+
+---
+
+### 🦺 The Field Operations Command
+
+*Tactical field execution, crisis verification, and primary resource tracking.*
+
+- **On-Ground Intake System:** Manually capture and digitize biometric and demographic metadata for victims missing primary network connectivity.
+- **Deficit Mitigation Requisitions:** Dynamically generate procurement forms whenever local resource shortages are identified.
+- **Asset & Shelter Tasking Engine:** Monitor inventory levels at localized distribution points and track active tasks regarding shelter setup.
+
+---
+
+### 📦 The Warehouse & Logistics Console
+
+*Supply chain integrity, inventory controls, and cross-facility asset routing.*
+
+```
+📦 [Warehouse Control Center]
+├── 📋 Master Catalog ─── [Item Classifications, Expirations, Batch IDs]
+├── 📊 Live Ledger    ─── [Real-Time Stock Quantities, Critical Minimums]
+└── 🚚 Route Manager  ─── [Incoming Receipts, Outbound Dispatches, History Log]
+```
+
+- **Master Asset Directory:** Maintain a detailed ledger of aid supplies, monitoring asset categories, serial records, and shelf life parameters.
+- **Real-Time Stock Manifests:** Visual monitoring tools reflecting instantaneous warehouse quantities and auto-generating re-order warnings.
+- **Logistics & Inter-Facility Transfers:** Process incoming shipments, execute distributions, and log complete end-to-end chain of custody asset histories.
+
+---
+
+## 4. End-to-End Operational Workflow
+
+The system synchronizes all four user roles inside a live data pipeline during an emergency deployment cycle:
+
+```
+[1] CITIZEN            [2] GOVT OFFICER          [3] FIELD OFFICER         [4] WAREHOUSE MGR
+Submit Request  ───►  Evaluate & Approve  ───►  Coordinate Placement ───►  Allocate Supplies
+(Identity & Need)     (Authorize Allocation)    (Log Supply Deficits)      (Dispatch Manifest)
+```
+
+---
+
+## 5. Local Setup, Initialization, & Deployment
+
+Follow this exact sequence to initialize the development container and run the web platform locally:
+
+1. Launch a shell environment within the project's root folder structure.
+2. Spin up the localized web instance using the primary Python wrapper:
+
+   ```bash
+   python run.py
+   ```
+
+3. Once the logging pipeline confirms successful server initialization, navigate to the local environment endpoint using any standard browser:
+
+   ```
+   http://127.0.0.1:5000/
+   ```
+   ```
+   https://sahananeth1.onrender.com/
+   ```
+   
+
+---
+
+*SAHANANETH Operations Manual — Confidential & Operational Framework Documentation.*
