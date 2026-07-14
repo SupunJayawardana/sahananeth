@@ -2,40 +2,42 @@
 {% block title %}Confirm Receipt{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto mt-10 px-4">
-    <h1 class="text-2xl font-bold text-blue-800 mb-1">Confirm Receipt</h1>
-    <p class="text-gray-500 mb-8">Verify the quantity received and update shelter inventory</p>
+<div class="mx-auto mt-10 max-w-lg px-4 pb-16">
+    <div class="mb-6">
+        <div class="eyebrow">Field Officer · Receipt</div>
+        <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Confirm Receipt</h1>
+        <p class="mt-1 text-sm text-slate">Verify the quantity received and update shelter inventory.</p>
+    </div>
 
-    <div class="bg-white rounded-xl shadow p-6">
-        <div class="bg-gray-50 rounded-lg p-4 mb-6">
-            <p class="text-sm text-gray-500">Item</p>
-            <p class="text-lg font-bold text-gray-800">{{ proc.requested_sku }}</p>
-            <p class="text-sm text-gray-500 mt-2">Shelter</p>
-            <p class="font-medium text-gray-700">{{ proc.shelter.shelter_name }}</p>
-            <p class="text-sm text-gray-500 mt-2">Quantity Requested</p>
-            <p class="font-medium text-gray-700">
+    <div class="ledger-card tone-relief p-6 md:p-8">
+        <div class="mb-6 rounded-xl border border-line bg-paper p-4">
+            <p class="text-sm font-medium text-slate">Item</p>
+            <p class="mt-1 font-display text-xl font-semibold text-ink">{{ proc.requested_sku }}</p>
+            <p class="mt-4 text-sm font-medium text-slate">Shelter</p>
+            <p class="text-ink">{{ proc.shelter.shelter_name }}</p>
+            <p class="mt-4 text-sm font-medium text-slate">Quantity Requested</p>
+            <p class="font-mono text-ink">
                 {{ proc.quantity_needed }} {{ proc.metric_unit }}
             </p>
             {% if proc.fulfilled_warehouse %}
-            <p class="text-sm text-gray-500 mt-2">Dispatched From</p>
-            <p class="font-medium text-gray-700">{{ proc.fulfilled_warehouse.warehouse_name }}</p>
+            <p class="mt-4 text-sm font-medium text-slate">Dispatched From</p>
+            <p class="text-ink">{{ proc.fulfilled_warehouse.warehouse_name }}</p>
             {% endif %}
         </div>
 
         <form method="POST" action="/field/procurement/fulfill/{{ proc.id }}" class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
+                <label class="mb-1.5 block text-sm font-medium text-ink">
                     Quantity Actually Received
                 </label>
                 <input type="number" name="received_quantity"
                     value="{{ proc.quantity_needed }}" min="0"
-                    class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <p class="text-xs text-gray-400 mt-1">
+                    class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
+                <p class="mt-1 text-xs text-slate">
                     Edit if actual quantity differs from what was requested.
                 </p>
             </div>
-            <button type="submit"
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 rounded-lg">
+            <button type="submit" class="btn-secondary w-full">
                 Confirm Received & Update Inventory
             </button>
         </form>

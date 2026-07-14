@@ -2,24 +2,27 @@
 {% block title %}Manage Stock — {{ warehouse.warehouse_name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10 px-4">
-    <div class="flex justify-between items-center mb-6">
+<div class="mx-auto mt-10 max-w-4xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-blue-800">{{ warehouse.warehouse_name }}</h1>
-            <p class="text-gray-500 text-sm mt-1">Stock Management</p>
+            <div class="eyebrow">Warehouse Manager · Stock</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">{{ warehouse.warehouse_name }}</h1>
+            <p class="mt-1 text-sm text-slate">Stock Management</p>
         </div>
-        <a href="/warehouse/dashboard" class="text-sm text-blue-600 hover:underline">← Dashboard</a>
+        <a href="/warehouse/dashboard" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            Dashboard
+        </a>
     </div>
 
-    <!-- Add stock -->
-    <div class="bg-white rounded-xl shadow p-6 mb-6">
-        <h2 class="text-lg font-semibold text-gray-700 mb-4">Add Stock from Catalog</h2>
+    <div class="ledger-card tone-civic p-6 md:p-8 mb-6">
+        <h2 class="mb-4 font-display text-lg font-semibold text-ink">Add Stock from Catalog</h2>
         <form method="POST" action="/warehouse/stock/{{ warehouse.id }}/add"
-            class="flex gap-3 flex-wrap items-end">
+            class="flex flex-wrap items-end gap-3">
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Product</label>
+                <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate">Product</label>
                 <select name="product_id" required
-                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    class="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
                     <option value="" disabled selected>Select product</option>
                     {% for product in products %}
                     <option value="{{ product.id }}">
@@ -29,45 +32,39 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Quantity</label>
+                <label class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate">Quantity</label>
                 <input type="number" name="quantity" required min="1"
-                    class="w-32 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-32 rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"
                     placeholder="e.g. 100">
             </div>
-            <button type="submit"
-                class="bg-blue-700 hover:bg-blue-800 text-white text-sm px-5 py-2 rounded-lg">
+            <button type="submit" class="btn-primary">
                 Add Stock
             </button>
         </form>
     </div>
 
-    <!-- Current stock -->
-    <h2 class="text-lg font-semibold text-gray-700 mb-3">Current Stock</h2>
+    <h2 class="mb-3 font-display text-lg font-semibold text-ink">Current Stock</h2>
     {% if warehouse.inventory %}
     <div class="space-y-3">
         {% for item in warehouse.inventory %}
-        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center
-            {% if item.quantity_available <= 10 %}border-l-4 border-red-400{% endif %}">
+        <div class="ledger-card {% if item.quantity_available <= 10 %}tone-rust{% else %}tone-slate{% endif %} p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="font-semibold text-gray-800">
+                <p class="font-semibold text-ink">
                     {{ item.sku_name }}
                     {% if item.quantity_available <= 10 %}
-                    <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full ml-1">
-                        Low Stock
-                    </span>
+                    <span class="ml-1 status-pill status-rejected">Low Stock</span>
                     {% endif %}
                 </p>
-                <p class="text-sm text-gray-500">
+                <p class="mt-0.5 text-sm text-slate">
                     {{ item.quantity_available }} {{ item.metric_unit }}
                 </p>
             </div>
             <form method="POST"
                 action="/warehouse/stock/{{ warehouse.id }}/update/{{ item.id }}"
-                class="flex gap-2 items-center">
+                class="flex items-center gap-2">
                 <input type="number" name="quantity" value="{{ item.quantity_available }}" min="0"
-                    class="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
-                <button type="submit"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-1.5 rounded-lg">
+                    class="w-24 rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink">
+                <button type="submit" class="btn-ghost">
                     Update
                 </button>
             </form>
@@ -75,7 +72,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
+    <div class="ledger-card tone-relief p-6 text-center text-slate">
         No stock items yet.
     </div>
     {% endif %}

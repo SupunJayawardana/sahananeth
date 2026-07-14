@@ -2,53 +2,50 @@
 {% block title %}Procurement Requests{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto mt-10 px-4">
-    <div class="flex justify-between items-center mb-6">
+<div class="mx-auto mt-10 max-w-4xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-blue-800">Procurement Requests</h1>
-            <p class="text-gray-500 text-sm mt-1">All your shelter requests</p>
+            <div class="eyebrow">Field Officer · Requests</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Procurement Requests</h1>
+            <p class="mt-1 text-sm text-slate">All your shelter requests.</p>
         </div>
-        <a href="/field/procurement/create"
-            class="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded-lg">
-            + New Request
+        <a href="/field/procurement/create" class="btn-primary inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-package"/></svg>
+            New Request
         </a>
     </div>
 
     {% if requests %}
     <div class="space-y-3">
         {% for req in requests %}
-        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+        <div class="ledger-card tone-slate p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="font-semibold text-gray-800">
+                <p class="font-semibold text-ink">
                     {{ req.requested_sku }}
-                    <span class="text-gray-500 font-normal text-sm">
+                    <span class="ml-1 font-mono text-sm text-slate">
                         × {{ req.quantity_needed }} {{ req.metric_unit }}
                     </span>
                 </p>
-                <p class="text-xs text-gray-500 mt-0.5">
+                <p class="mt-1 text-sm text-slate">
                     Shelter: {{ req.shelter.shelter_name }}
                 </p>
                 {% if req.notes %}
-                <p class="text-xs text-gray-400 mt-0.5">{{ req.notes }}</p>
+                <p class="mt-0.5 text-xs text-slate">{{ req.notes }}</p>
                 {% endif %}
-                <p class="text-xs text-gray-400 mt-0.5">
+                <p class="mt-0.5 text-xs font-mono text-slate">
                     {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
                     {% if req.fulfilled_warehouse %}
                     · Warehouse: {{ req.fulfilled_warehouse.warehouse_name }}
                     {% endif %}
                 </p>
             </div>
-            <div class="flex gap-2 items-center">
-                <span class="text-xs font-semibold px-3 py-1 rounded-full
-                    {% if req.status_state == 'pending' %}bg-yellow-100 text-yellow-700
-                    {% elif req.status_state == 'approved' %}bg-blue-100 text-blue-700
-                    {% elif req.status_state == 'fulfilled' %}bg-green-100 text-green-700
-                    {% else %}bg-red-100 text-red-700{% endif %}">
+            <div class="flex items-center gap-2">
+                <span class="status-pill {% if req.status_state == 'pending' %}status-pending{% elif req.status_state == 'approved' %}status-approved{% elif req.status_state == 'fulfilled' %}status-fulfilled{% else %}status-rejected{% endif %}">
                     {{ req.status_state.title() }}
                 </span>
                 {% if req.status_state == 'dispatched' %}
-                <a href="/field/procurement/fulfill/{{ req.id }}"
-                    class="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg">
+                <a href="/field/procurement/fulfill/{{ req.id }}" class="btn-approve inline-flex items-center gap-1.5">
+                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
                     Mark Fulfilled
                 </a>
                 {% endif %}
@@ -57,7 +54,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
+    <div class="ledger-card tone-relief p-6 text-center text-slate">
         No procurement requests yet.
     </div>
     {% endif %}

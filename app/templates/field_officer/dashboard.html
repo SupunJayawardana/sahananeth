@@ -2,74 +2,77 @@
 {% block title %}Field Officer Dashboard{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto mt-10 px-4">
-    <h1 class="text-2xl font-bold text-blue-800 mb-1">
-        Welcome, {{ current_user.full_name or current_user.username }} 👋
+<div class="mx-auto mt-10 max-w-5xl px-4 pb-16">
+    <div class="eyebrow">Field Officer Portal</div>
+    <h1 class="mt-1 font-display text-3xl font-semibold text-ink">
+        Welcome, {{ current_user.full_name or current_user.username }}
     </h1>
-    <p class="text-gray-500 mb-8">Field Officer Portal — SAHANANETH</p>
+    <p class="mb-8 mt-1 text-slate">Track shelters, procurement, and inventory status.</p>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
-            <p class="text-sm text-gray-500">Active Shelters</p>
-            <p class="text-2xl font-bold text-blue-700 mt-1">{{ my_shelters|length }}</p>
+    <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div class="ledger-card tone-civic p-5">
+            <p class="eyebrow">Active Shelters</p>
+            <p class="mt-2 font-display text-2xl font-semibold text-ink">{{ my_shelters|length }}</p>
         </div>
-        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500">
-            <p class="text-sm text-gray-500">Pending Shelters</p>
-            <p class="text-2xl font-bold text-yellow-700 mt-1">{{ pending_shelters|length }}</p>
+        <div class="ledger-card tone-amber p-5">
+            <p class="eyebrow">Pending Shelters</p>
+            <p class="mt-2 font-display text-2xl font-semibold text-ink">{{ pending_shelters|length }}</p>
         </div>
-        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-red-500">
-            <p class="text-sm text-gray-500">Low Stock Items</p>
-            <p class="text-2xl font-bold text-red-700 mt-1">{{ low_stock_items|length }}</p>
+        <div class="ledger-card tone-rust p-5">
+            <p class="eyebrow">Low Stock Items</p>
+            <p class="mt-2 font-display text-2xl font-semibold text-ink">{{ low_stock_items|length }}</p>
         </div>
-        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-purple-500">
-            <p class="text-sm text-gray-500">Shelter Slots Used</p>
-            <p class="text-2xl font-bold text-purple-700 mt-1">{{ shelter_count }} / 10</p>
+        <div class="ledger-card tone-relief p-5">
+            <p class="eyebrow">Shelter Slots Used</p>
+            <p class="mt-2 font-display text-2xl font-semibold text-ink">{{ shelter_count }} / 10</p>
         </div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex gap-3 mb-8 flex-wrap">
+    <div class="mb-8 flex flex-wrap gap-3">
         {% if shelter_count < 10 %}
-        <a href="/field/shelter/create"
-            class="bg-blue-700 hover:bg-blue-800 text-white text-sm px-5 py-2 rounded-lg">
-            + Register New Shelter
+        <a href="/field/shelter/create" class="btn-primary inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-home"/></svg>
+            Register New Shelter
         </a>
         {% else %}
-        <span class="bg-gray-200 text-gray-500 text-sm px-5 py-2 rounded-lg cursor-not-allowed">
+        <span class="rounded-lg border border-line bg-paper px-5 py-2.5 text-sm font-medium text-slate">
             Max 10 Shelters Reached
         </span>
         {% endif %}
-        <a href="/field/procurement/create"
-            class="bg-green-600 hover:bg-green-700 text-white text-sm px-5 py-2 rounded-lg">
-            + New Procurement Request
+        <a href="/field/procurement/create" class="btn-secondary inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-package"/></svg>
+            New Procurement Request
         </a>
-        <a href="/field/procurement/list"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-5 py-2 rounded-lg">
+        <a href="/field/procurement/list" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-clipboard"/></svg>
             View All Requests
         </a>
-        <a href="/field/citizens/register"
-            class="bg-purple-600 hover:bg-purple-700 text-white text-sm px-5 py-2 rounded-lg">
+        <a href="/field/citizens/register" class="btn-approve inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-user"/></svg>
             Register Citizen to Shelter
         </a>
     </div>
 
-    <!-- Pending shelters -->
     {% if pending_shelters %}
-    <div class="bg-yellow-50 border border-yellow-300 rounded-xl p-4 mb-6">
-        <p class="font-semibold text-yellow-800 mb-2">⏳ Shelters Awaiting Approval</p>
+    <div class="ledger-card tone-amber p-4 mb-6">
+        <p class="mb-2 flex items-center gap-2 font-semibold text-ink">
+            <svg class="icon text-amber"><use href="#icon-clock"/></svg>
+            Shelters Awaiting Approval
+        </p>
         {% for s in pending_shelters %}
-        <p class="text-sm text-yellow-700">· {{ s.shelter_name }}</p>
+        <p class="pl-6 text-sm text-slate">• {{ s.shelter_name }}</p>
         {% endfor %}
     </div>
     {% endif %}
 
-    <!-- Low stock warnings -->
     {% if low_stock_items %}
-    <div class="bg-red-50 border border-red-300 rounded-xl p-4 mb-6">
-        <p class="font-semibold text-red-700 mb-2">⚠️ Low Stock Alerts</p>
+    <div class="ledger-card tone-rust p-4 mb-6">
+        <p class="mb-2 flex items-center gap-2 font-semibold text-rust">
+            <svg class="icon text-rust"><use href="#icon-alert"/></svg>
+            Low Stock Alerts
+        </p>
         {% for item in low_stock_items %}
-        <p class="text-sm text-red-600">
+        <p class="pl-6 text-sm text-slate">
             {{ item.item_name }} at {{ item.shelter.shelter_name }}
             — only {{ item.quantity }} {{ item.metric_unit }} left
             (threshold: {{ item.threshold }})
@@ -78,66 +81,60 @@
     </div>
     {% endif %}
 
-    <!-- Active shelters list -->
-    <h2 class="text-lg font-semibold text-gray-700 mb-3">Active Shelters</h2>
+    <h2 class="mb-3 font-display text-lg font-semibold text-ink">Active Shelters</h2>
     {% if my_shelters %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
         {% for shelter in my_shelters %}
-        <div class="bg-white rounded-xl shadow p-5">
-            <div class="flex justify-between items-start mb-3">
+        <div class="ledger-card tone-slate p-5">
+            <div class="mb-3 flex items-start justify-between gap-3">
                 <div>
-                    <p class="font-semibold text-gray-800">{{ shelter.shelter_name }}</p>
-                    <p class="text-xs text-gray-400 mt-0.5">{{ shelter.address or 'No address' }}</p>
+                    <p class="font-semibold text-ink">{{ shelter.shelter_name }}</p>
+                    <p class="mt-0.5 text-xs font-mono text-slate">{{ shelter.address or 'No address' }}</p>
                 </div>
-                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Active</span>
+                <span class="status-pill status-approved">Active</span>
             </div>
-            <div class="flex justify-between text-sm text-gray-600 mb-3">
+            <div class="mb-3 flex justify-between text-sm text-slate">
                 <span>Occupancy: {{ shelter.current_occupancy_count }} / {{ shelter.maximum_capacity }}</span>
                 <span>{{ shelter.inventory_items|length }} items</span>
             </div>
             <a href="/field/shelter/{{ shelter.id }}/inventory"
-                class="block text-center bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm px-4 py-2 rounded-lg">
+                class="btn-ghost block text-center">
                 Manage Inventory
             </a>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400 mb-8">
+    <div class="ledger-card tone-relief p-6 text-center text-slate mb-8">
         No active shelters yet. Register your first shelter above.
     </div>
     {% endif %}
 
-    <!-- Recent requests -->
-    <h2 class="text-lg font-semibold text-gray-700 mb-3">Recent Procurement Requests</h2>
+    <h2 class="mb-3 font-display text-lg font-semibold text-ink">Recent Procurement Requests</h2>
     {% if my_requests %}
     <div class="space-y-3">
         {% for req in my_requests %}
-        <div class="bg-white rounded-xl shadow p-4 flex justify-between items-center">
+        <div class="ledger-card tone-slate p-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-                <p class="font-semibold text-gray-800">
+                <p class="font-semibold text-ink">
                     {{ req.requested_sku }}
-                    <span class="text-gray-500 font-normal text-sm">
+                    <span class="ml-1 font-mono text-sm text-slate">
                         × {{ req.quantity_needed }} {{ req.metric_unit }}
                     </span>
                 </p>
-                <p class="text-xs text-gray-400 mt-0.5">
+                <p class="mt-0.5 text-xs font-mono text-slate">
                     {{ req.shelter.shelter_name }} ·
                     {{ req.created_at.strftime('%Y-%m-%d %H:%M') }}
                 </p>
             </div>
-            <span class="text-xs font-semibold px-3 py-1 rounded-full
-                {% if req.status_state == 'pending' %}bg-yellow-100 text-yellow-700
-                {% elif req.status_state == 'approved' %}bg-blue-100 text-blue-700
-                {% elif req.status_state == 'fulfilled' %}bg-green-100 text-green-700
-                {% else %}bg-red-100 text-red-700{% endif %}">
+            <span class="status-pill {% if req.status_state == 'pending' %}status-pending{% elif req.status_state == 'approved' %}status-approved{% elif req.status_state == 'fulfilled' %}status-fulfilled{% else %}status-rejected{% endif %}">
                 {{ req.status_state.title() }}
             </span>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white rounded-xl shadow p-6 text-center text-gray-400">
+    <div class="ledger-card tone-relief p-6 text-center text-slate">
         No procurement requests yet.
     </div>
     {% endif %}
