@@ -75,13 +75,28 @@ def reject_shelter(shelter_id):
 def procurement_requests():
     from app.models.procurement import ProcurementRequest
     from app.models.warehouse import Warehouse
+    from app.services.geo_services import find_matching_warehouses
+
     requests = ProcurementRequest.query.order_by(
         ProcurementRequest.created_at.desc()
     ).all()
-    warehouses = Warehouse.query.all()
+
+    # Pre-calculate GIS matches for each pending request (same as gov officer view)
+    gis_matches = {}
+    for req in requests:
+        if req.status_state == 'pending' and req.shelter:
+            matches = find_matching_warehouses(
+                req.shelter,
+                req.requested_sku,
+                req.quantity_needed
+            )
+            gis_matches[req.id] = matches
+
+    warehouses = Warehouse.query.filter_by(status='active').all()
     return render_template('gov_officer/procurement.html',
                            requests=requests,
-                           warehouses=warehouses)
+                           warehouses=warehouses,
+                           gis_matches=gis_matches)
 
 
 @admin_bp.route('/procurement/approve/<int:request_id>', methods=['POST'])
