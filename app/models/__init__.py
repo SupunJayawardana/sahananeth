@@ -8,3 +8,4 @@ from app.models.alert import Alert
 from app.models.product import Product
 from app.models.stock_transfer import StockTransfer
 from app.models.shelter_registration import ShelterRegistrationRequest
+from app.models.activity_log import ActivityLog

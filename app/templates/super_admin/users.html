@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-10 max-w-4xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <div class="eyebrow">System Control Panel</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Manage Users</h1>
+            <p class="mt-1 text-slate">All staff accounts — Gov Officers, Field Officers, and Warehouse Managers.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            Dashboard
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <form method="GET" action="/admin/users" class="mb-6 flex flex-wrap gap-3">
+        <select name="role" onchange="this.form.submit()"
+            class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+            <option value="">All Roles</option>
+            {% for role in ['gov_officer', 'field_officer', 'warehouse_manager', 'super_admin'] %}
+            <option value="{{ role }}" {% if role_filter == role %}selected{% endif %}>
+                {{ role.replace('_', ' ').title() }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="status" onchange="this.form.submit()"
+            class="rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink">
+            <option value="">All Statuses</option>
+            {% for status in ['pending', 'active', 'rejected'] %}
+            <option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>
+                {{ status.title() }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if role_filter or status_filter %}
+        <a href="/admin/users" class="btn-ghost inline-flex items-center text-sm">Clear filters</a>
+        {% endif %}
+    </form>
+
+    <p class="mb-3 text-sm text-slate">{{ users|length }} user{{ 's' if users|length != 1 }} found</p>
+
+    {% if users %}
+    <div class="space-y-3">
+        {% for user in users %}
+        <div class="ledger-card p-4 flex flex-wrap items-center justify-between gap-3
+            {% if user.status == 'pending' %}tone-amber
+            {% elif user.status == 'active' %}tone-relief
+            {% else %}tone-rust{% endif %}">
+            <div>
+                <p class="font-semibold text-ink">{{ user.full_name or user.username }}</p>
+                <p class="text-sm text-slate">
+                    @{{ user.username }} —
+                    <span class="font-medium text-civic">
+                        {{ user.role_level.replace('_', ' ').title() }}
+                    </span>
+                </p>
+                <p class="mt-0.5 font-mono text-xs text-slate">
+                    Registered: {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="status-pill status-{{ user.status }}">{{ user.status }}</span>
+
+                {% if user.status == 'pending' %}
+                <a href="/admin/approve/user/{{ user.id }}" class="btn-approve flex items-center gap-1.5">
+                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
+                    Approve
+                </a>
+                <a href="/admin/reject/user/{{ user.id }}" class="btn-danger flex items-center gap-1.5">
+                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
+                    Reject
+                </a>
+                {% elif user.id != current_user.id %}
+                <a href="/admin/users/toggle/{{ user.id }}"
+                    class="{% if user.status == 'active' %}btn-danger{% else %}btn-approve{% endif %} flex items-center gap-1.5">
+                    {% if user.status == 'active' %}
+                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
+                    Deactivate
+                    {% else %}
+                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
+                    Reactivate
+                    {% endif %}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ledger-card tone-relief p-6 text-center text-slate">
+        No users match these filters.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -2,12 +2,16 @@
 {% block title %}Procurement Requests{% endblock %}
 
 {% block content %}
+<!-- Leaflet.js Assets -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <div class="mx-auto mt-10 max-w-5xl px-4 pb-16">
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
             <div class="eyebrow">Government Officer · Procurement</div>
             <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Procurement Requests</h1>
-            <p class="mt-1 text-sm text-slate">All shelter resource requests.</p>
+            <p class="mt-1 text-sm text-slate">All shelter resource requests with GIS-powered warehouse matching.</p>
         </div>
         <a href="/gov/dashboard" class="btn-ghost inline-flex items-center gap-2">
             <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
@@ -47,26 +51,217 @@
             </div>
 
             {% if req.status_state == 'pending' %}
-            <div class="mt-3 border-t border-line pt-3">
-                <p class="mb-2 text-sm font-medium text-ink">Assign warehouse & approve:</p>
-                <form method="POST" action="/gov/procurement/approve/{{ req.id }}"
-                    class="flex flex-wrap items-center gap-3">
-                    <select name="warehouse_id" required
-                        class="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
-                        <option value="" disabled selected>Select warehouse</option>
-                        {% for warehouse in warehouses %}
-                        <option value="{{ warehouse.id }}">{{ warehouse.warehouse_name }}</option>
+            <div class="mt-4 border-t border-line pt-4 space-y-4">
+                
+                {% if gis_matches.get(req.id) %}
+                {% set matches = gis_matches[req.id] %}
+
+                <!-- GIS Map Container -->
+                {% if req.shelter.latitude and req.shelter.longitude %}
+                <div>
+                    <p class="mb-2 text-sm font-medium text-ink flex items-center gap-1.5">
+                        📍 GIS Warehouse Map
+                    </p>
+                    <div id="map-{{ req.id }}" class="w-full rounded-xl border border-line bg-paper shadow-sm" style="height: 280px; z-index: 1;"></div>
+                </div>
+                {% endif %}
+
+                <!-- GIS Ranking Table -->
+                <div>
+                    <p class="mb-2 text-sm font-medium text-ink">
+                        🏭 Warehouse Matching — Ranked by Distance
+                    </p>
+                    <div class="overflow-x-auto rounded-xl border border-line bg-paper">
+                        <table class="w-full text-sm text-left">
+                            <thead>
+                                <tr class="border-b border-line bg-slate/5 text-xs font-semibold uppercase tracking-wide text-slate">
+                                    <th class="px-4 py-2.5">Warehouse</th>
+                                    <th class="px-4 py-2.5">Distance</th>
+                                    <th class="px-4 py-2.5">Travel Time</th>
+                                    <th class="px-4 py-2.5">Stock Available</th>
+                                    <th class="px-4 py-2.5">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-line text-ink">
+                                {% for match in matches %}
+                                <tr class="{% if match.recommended %}bg-relief/10{% endif %}">
+                                    <td class="px-4 py-2.5 font-medium">
+                                        {{ match.warehouse.warehouse_name }}
+                                        {% if match.recommended %}
+                                        <span class="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-relief/20 px-2 py-0.5 text-xs font-medium text-relief">
+                                            <svg class="icon" style="width:11px;height:11px"><use href="#icon-check"/></svg> Recommended
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-slate">
+                                        {% if match.distance_km %}{{ match.distance_km }} km{% else %}—{% endif %}
+                                    </td>
+                                    <td class="px-4 py-2.5 text-slate">
+                                        {{ match.travel_time or '—' }}
+                                    </td>
+                                    <td class="px-4 py-2.5 font-mono {% if match.has_sufficient %}text-relief font-semibold{% else %}text-rust{% endif %}">
+                                        {{ match.quantity_available }} {{ req.metric_unit }}
+                                    </td>
+                                    <td class="px-4 py-2.5">
+                                        {% if match.has_sufficient %}
+                                        <span class="inline-flex items-center gap-1 text-xs font-medium text-relief">
+                                            <svg class="icon" style="width:12px;height:12px"><use href="#icon-check"/></svg> Sufficient
+                                        </span>
+                                        {% else %}
+                                        <span class="inline-flex items-center gap-1 text-xs font-medium text-rust">
+                                            <svg class="icon" style="width:12px;height:12px"><use href="#icon-alert"/></svg> Insufficient
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- GIS Map Initialization Script -->
+                {% if req.shelter.latitude and req.shelter.longitude %}
+                <script>
+                (function() {
+                    var map = L.map('map-{{ req.id }}').setView(
+                        [{{ req.shelter.latitude }}, {{ req.shelter.longitude }}], 8
+                    );
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }).addTo(map);
+
+                    // Shelter Marker
+                    var shelterIcon = L.divIcon({
+                        html: '<div style="background:#ef4444;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8],
+                        className: ''
+                    });
+
+                    L.marker(
+                        [{{ req.shelter.latitude }}, {{ req.shelter.longitude }}],
+                        {icon: shelterIcon}
+                    ).addTo(map)
+                     .bindPopup('<b>🏠 {{ req.shelter.shelter_name }}</b><br>Requesting: {{ req.quantity_needed }} {{ req.metric_unit }} of {{ req.requested_sku }}');
+
+                    // Warehouse Markers Group
+                    var warehouses = [
+                        {% for match in matches %}
+                        {% if match.warehouse.latitude and match.warehouse.longitude %}
+                        {
+                            lat: {{ match.warehouse.latitude }},
+                            lng: {{ match.warehouse.longitude }},
+                            name: "{{ match.warehouse.warehouse_name }}",
+                            qty: {{ match.quantity_available }},
+                            unit: "{{ req.metric_unit }}",
+                            sufficient: {{ 'true' if match.has_sufficient else 'false' }},
+                            distance: "{{ match.distance_km or 'N/A' }} km",
+                            recommended: {{ 'true' if match.recommended else 'false' }}
+                        },
+                        {% endif %}
                         {% endfor %}
-                    </select>
-                    <button type="submit" class="btn-approve inline-flex items-center gap-1.5">
-                        <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
-                        Approve & Assign
-                    </button>
-                    <a href="/gov/procurement/reject/{{ req.id }}" class="btn-danger inline-flex items-center gap-1.5">
-                        <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
-                        Reject
-                    </a>
-                </form>
+                    ];
+
+                    warehouses.forEach(function(w) {
+                        var color = w.recommended ? '#16a34a' : (w.sufficient ? '#2563eb' : '#9ca3af');
+                        var warehouseIcon = L.divIcon({
+                            html: '<div style="background:' + color + ';width:16px;height:16px;border-radius:3px;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+                            iconSize: [16, 16],
+                            iconAnchor: [8, 8],
+                            className: ''
+                        });
+
+                        var marker = L.marker([w.lat, w.lng], {icon: warehouseIcon}).addTo(map);
+                        marker.bindPopup(
+                            '<b>🏭 ' + w.name + '</b>' +
+                            (w.recommended ? '<br><span style="color:#16a34a">✅ Recommended</span>' : '') +
+                            '<br>Stock: ' + w.qty + ' ' + w.unit +
+                            '<br>Distance: ' + w.distance +
+                            '<br>Status: ' + (w.sufficient ? '<span style="color:green">Sufficient</span>' : '<span style="color:red">Insufficient</span>')
+                        );
+
+                        // Draw path from shelter to warehouse
+                        L.polyline(
+                            [
+                                [{{ req.shelter.latitude }}, {{ req.shelter.longitude }}],
+                                [w.lat, w.lng]
+                            ],
+                            {
+                                color: w.recommended ? '#16a34a' : '#d1d5db',
+                                weight: w.recommended ? 2.5 : 1,
+                                dashArray: w.recommended ? null : '5,5',
+                                opacity: w.recommended ? 0.8 : 0.4
+                            }
+                        ).addTo(map);
+                    });
+
+                    // Unified Legend Panel
+                    var legend = L.control({position: 'bottomright'});
+                    legend.onAdd = function() {
+                        var div = L.DomUtil.create('div', '');
+                        div.style.cssText = 'background:white;padding:8px;border-radius:8px;font-size:11px;box-shadow:0 2px 4px rgba(0,0,0,0.15);color:#1e293b;';
+                        div.innerHTML =
+                            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+                            '<div style="width:12px;height:12px;background:#ef4444;border-radius:50%"></div> Shelter</div>' +
+                            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+                            '<div style="width:12px;height:12px;background:#16a34a;border-radius:3px"></div> Recommended</div>' +
+                            '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">' +
+                            '<div style="width:12px;height:12px;background:#2563eb;border-radius:3px"></div> Has Stock</div>' +
+                            '<div style="display:flex;align-items:center;gap:6px">' +
+                            '<div style="width:12px;height:12px;background:#9ca3af;border-radius:3px"></div> Low Stock</div>';
+                        return div;
+                    };
+                    legend.addTo(map);
+                })();
+                </script>
+                {% endif %}
+
+                <!-- GIS Optimized Action Form -->
+                <div>
+                    <p class="mb-2 text-sm font-medium text-ink">Assign warehouse & approve:</p>
+                    <form method="POST" action="/gov/procurement/approve/{{ req.id }}" class="flex flex-wrap items-center gap-3">
+                        <select name="warehouse_id" required class="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
+                            <option value="" disabled>Select warehouse</option>
+                            {% for match in matches %}
+                            <option value="{{ match.warehouse.id }}" {% if match.recommended %}selected{% endif %}>
+                                {{ match.warehouse.warehouse_name }} {% if match.distance_km %}({{ match.distance_km }} km){% endif %} {% if match.has_sufficient %}✓{% else %}⚠️{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-approve inline-flex items-center gap-1.5">
+                            <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
+                            Approve & Assign
+                        </button>
+                        <a href="/gov/procurement/reject/{{ req.id }}" class="btn-danger inline-flex items-center gap-1.5">
+                            <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
+                            Reject
+                        </a>
+                    </form>
+                </div>
+
+                {% else %}
+                <!-- Fallback Template: Manual Assignment Reference (No GIS Context available) -->
+                <div>
+                    <p class="mb-2 text-sm font-medium text-ink">Assign warehouse & approve:</p>
+                    <form method="POST" action="/gov/procurement/approve/{{ req.id }}" class="flex flex-wrap items-center gap-3">
+                        <select name="warehouse_id" required class="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
+                            <option value="" disabled selected>Select warehouse</option>
+                            {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}">{{ warehouse.warehouse_name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn-approve inline-flex items-center gap-1.5">
+                            <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
+                            Approve & Assign
+                        </button>
+                        <a href="/gov/procurement/reject/{{ req.id }}" class="btn-danger inline-flex items-center gap-1.5">
+                            <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
+                            Reject
+                        </a>
+                    </form>
+                </div>
 
                 <div class="mt-3 rounded-xl border border-line bg-paper p-3">
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate">
@@ -92,6 +287,8 @@
                         {% endfor %}
                     </div>
                 </div>
+                {% endif %}
+
             </div>
             {% endif %}
         </div>

@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+{% block title %}System Analytics{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="max-w-6xl mx-auto mt-10 px-4">
+    <h1 class="text-2xl font-bold text-blue-800 mb-1">System Analytics</h1>
+    <p class="text-gray-500 mb-8">SAHANANETH — Live Overview</p>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-blue-500">
+            <p class="text-xs text-gray-500 uppercase">Total Users</p>
+            <p class="text-3xl font-bold text-blue-700 mt-1">{{ user_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-green-500">
+            <p class="text-xs text-gray-500 uppercase">Active Shelters</p>
+            <p class="text-3xl font-bold text-green-700 mt-1">{{ shelter_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-yellow-500">
+            <p class="text-xs text-gray-500 uppercase">Warehouses</p>
+            <p class="text-3xl font-bold text-yellow-700 mt-1">{{ warehouse_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow p-5 border-l-4 border-red-500">
+            <p class="text-xs text-gray-500 uppercase">Unread Alerts</p>
+            <p class="text-3xl font-bold text-red-700 mt-1">{{ alert_stats.unread }}</p>
+        </div>
+    </div>
+
+    <!-- GIS Map -->
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">
+            🗺️ GIS Overview — All Shelters & Warehouses
+        </h2>
+        <div id="analytics-map" class="w-full rounded-xl border border-gray-200"
+            style="height: 450px;">
+        </div>
+        <div class="flex gap-4 mt-3 text-xs text-gray-500">
+            <span>🔴 Shelters</span>
+            <span>🟦 Warehouses</span>
+            <span>🟡 Low Stock Warning</span>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+        <!-- User breakdown -->
+        <div class="bg-white rounded-xl shadow p-5">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Users by Role</h2>
+            <div class="space-y-3">
+                {% set role_colors = {
+                    'super_admin': 'bg-purple-500',
+                    'gov_officer': 'bg-blue-500',
+                    'field_officer': 'bg-green-500',
+                    'warehouse_manager': 'bg-yellow-500',
+                    'citizen': 'bg-gray-400'
+                } %}
+                {% for role, count in user_stats.by_role.items() %}
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600 capitalize">{{ role.replace('_', ' ').title() }}</span>
+                        <span class="font-semibold">{{ count }}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="{{ role_colors.get(role, 'bg-blue-400') }} h-2 rounded-full"
+                            style="width: {{ (count / user_stats.total * 100) if user_stats.total > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Procurement breakdown -->
+        <div class="bg-white rounded-xl shadow p-5">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">Procurement Status</h2>
+            <div class="space-y-3">
+                {% set proc_colors = {
+                    'pending': 'bg-yellow-400',
+                    'approved': 'bg-blue-400',
+                    'dispatched': 'bg-purple-400',
+                    'fulfilled': 'bg-green-500',
+                    'rejected': 'bg-red-400'
+                } %}
+                {% set total_proc = procurement_stats.total %}
+                {% for status in ['pending', 'approved', 'dispatched', 'fulfilled', 'rejected'] %}
+                {% set count = procurement_stats[status] %}
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="text-gray-600 capitalize">{{ status }}</span>
+                        <span class="font-semibold">{{ count }}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2">
+                        <div class="{{ proc_colors[status] }} h-2 rounded-full"
+                            style="width: {{ (count / total_proc * 100) if total_proc > 0 else 0 }}%">
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Procurement last 7 days chart -->
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">
+            Procurement Requests — Last 7 Days
+        </h2>
+        <div class="flex items-end gap-2 h-32">
+            {% set max_count = procurement_chart | map(attribute='count') | max %}
+            {% for day in procurement_chart %}
+            <div class="flex-1 flex flex-col items-center gap-1">
+                <span class="text-xs text-gray-500">{{ day.count }}</span>
+                <div class="w-full bg-blue-500 rounded-t"
+                    style="height: {{ (day.count / max_count * 100) if max_count > 0 else 4 }}px; min-height: 4px;">
+                </div>
+                <span class="text-xs text-gray-400 rotate-0">{{ day.date }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Shelter occupancy table -->
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Shelter Occupancy</h2>
+        {% if shelter_stats.list %}
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-gray-50 text-gray-500 text-xs uppercase">
+                    <th class="px-3 py-2 text-left">Shelter</th>
+                    <th class="px-3 py-2 text-left">Occupancy</th>
+                    <th class="px-3 py-2 text-left">Capacity</th>
+                    <th class="px-3 py-2 text-left">Fill %</th>
+                    <th class="px-3 py-2 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for shelter in shelter_stats.list %}
+                {% set pct = (shelter.current_occupancy_count / shelter.maximum_capacity * 100) if shelter.maximum_capacity > 0 else 0 %}
+                <tr>
+                    <td class="px-3 py-2 font-medium text-gray-800">
+                        {{ shelter.shelter_name }}
+                    </td>
+                    <td class="px-3 py-2 text-gray-600">
+                        {{ shelter.current_occupancy_count }}
+                    </td>
+                    <td class="px-3 py-2 text-gray-600">
+                        {{ shelter.maximum_capacity }}
+                    </td>
+                    <td class="px-3 py-2">
+                        <div class="flex items-center gap-2">
+                            <div class="w-24 bg-gray-100 rounded-full h-2">
+                                <div class="h-2 rounded-full
+                                    {% if pct >= 90 %}bg-red-500
+                                    {% elif pct >= 70 %}bg-yellow-400
+                                    {% else %}bg-green-500{% endif %}"
+                                    style="width: {{ pct }}%">
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-500">{{ pct|round(1) }}%</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2">
+                        {% if shelter.is_full %}
+                        <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Full</span>
+                        {% else %}
+                        <span class="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">Available</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-400 text-center py-4">No active shelters yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Warehouse stock table -->
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Warehouse Stock Levels</h2>
+        {% if warehouse_stats.list %}
+        <div class="space-y-4">
+            {% for w in warehouse_stats.list %}
+            <div>
+                <p class="font-medium text-gray-700 mb-2">{{ w.warehouse_name }}</p>
+                <div class="space-y-1">
+                    {% for item in w.inventory %}
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-600">{{ item.sku_name }}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="{% if item.is_low %}text-red-600 font-semibold{% else %}text-gray-600{% endif %}">
+                                {{ item.quantity_available }} {{ item.metric_unit }}
+                            </span>
+                            {% if item.is_low %}
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Low</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-center py-4">No warehouses yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Activity Feed -->
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Recent Activity</h2>
+        {% if recent_activity %}
+        <div class="space-y-2">
+            {% for log in recent_activity %}
+            <div class="flex items-start gap-3 text-sm py-2 border-b border-gray-50">
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium mt-0.5
+                    {% if log.category == 'auth' %}bg-blue-100 text-blue-700
+                    {% elif log.category == 'user' %}bg-purple-100 text-purple-700
+                    {% elif log.category == 'shelter' %}bg-green-100 text-green-700
+                    {% elif log.category == 'warehouse' %}bg-yellow-100 text-yellow-700
+                    {% elif log.category == 'procurement' %}bg-orange-100 text-orange-700
+                    {% elif log.category == 'alert' %}bg-red-100 text-red-700
+                    {% else %}bg-gray-100 text-gray-600{% endif %}">
+                    {{ log.category }}
+                </span>
+                <div class="flex-1">
+                    <p class="text-gray-700">{{ log.description }}</p>
+                    <p class="text-xs text-gray-400 mt-0.5">
+                        {% if log.user %}by {{ log.user.username }} · {% endif %}
+                        {{ log.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-400 text-center py-4">No activity logged yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Analytics Map Script -->
+<script>
+var geoData = {{ geo_data | tojson }};
+
+var map = L.map('analytics-map').setView([7.8731, 80.7718], 7);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+// Shelter markers
+geoData.shelters.forEach(function(s) {
+    var icon = L.divIcon({
+        html: '<div style="background:#ef4444;width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+    L.marker([s.lat, s.lng], {icon: icon}).addTo(map)
+     .bindPopup(
+        '<b>🏠 ' + s.name + '</b>' +
+        '<br>Occupancy: ' + s.occupancy + ' / ' + s.capacity +
+        ' (' + s.occupancy_pct + '%)' +
+        '<br>Status: ' + (s.occupancy_pct >= 90 ? '<span style="color:red">Near Full</span>' : '<span style="color:green">Available</span>')
+     );
+});
+
+// Warehouse markers
+geoData.warehouses.forEach(function(w) {
+    var hasLowStock = w.low_stock_count > 0;
+    var color = hasLowStock ? '#f59e0b' : '#2563eb';
+    var icon = L.divIcon({
+        html: '<div style="background:' + color + ';width:14px;height:14px;border-radius:3px;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+    var stockHtml = w.stock_items.map(function(i) {
+        return '<br>' + i.name + ': ' + i.qty + ' ' + i.unit +
+               (i.low ? ' ⚠️' : '');
+    }).join('');
+    L.marker([w.lat, w.lng], {icon: icon}).addTo(map)
+     .bindPopup(
+        '<b>🏭 ' + w.name + '</b>' +
+        (hasLowStock ? '<br><span style="color:#f59e0b">⚠️ ' + w.low_stock_count + ' low stock items</span>' : '') +
+        stockHtml
+     );
+});
+
+// Legend
+var legend = L.control({position: 'bottomright'});
+legend.onAdd = function() {
+    var div = L.DomUtil.create('div', '');
+    div.style.cssText = 'background:white;padding:10px;border-radius:8px;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,0.15)';
+    div.innerHTML =
+        '<b style="display:block;margin-bottom:6px">Legend</b>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:12px;height:12px;background:#ef4444;border-radius:50%"></div> Shelter</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:12px;height:12px;background:#2563eb;border-radius:3px"></div> Warehouse</div>' +
+        '<div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;background:#f59e0b;border-radius:3px"></div> Low Stock</div>';
+    return div;
+};
+legend.addTo(map);
+</script>
+{% endblock %}

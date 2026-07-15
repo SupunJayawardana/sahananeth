@@ -9,6 +9,7 @@ from app.models.stock_transfer import StockTransfer
 from app.models.alert import Alert
 from app.services.alert_service import check_warehouse_stock_alerts
 from app.utils import role_required, active_required
+from app.services.activity_service import log_activity
 from datetime import datetime
 
 warehouse_bp = Blueprint('warehouse', __name__)
@@ -88,6 +89,7 @@ def create_warehouse():
         db.session.add(warehouse)
         db.session.commit()
 
+        log_activity('warehouse', f'Warehouse "{warehouse_name}" submitted for approval by {current_user.username}.', user_id=current_user.id)
         flash('Warehouse submitted for approval.', 'success')
         return redirect(url_for('warehouse.dashboard'))
 
@@ -221,6 +223,7 @@ def dispatch_request(request_id):
 
     proc.status_state = 'dispatched'
     db.session.commit()
+    log_activity('procurement', f'{current_user.username} dispatched {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} to {proc.shelter.shelter_name}.', user_id=current_user.id)
     flash(f'Dispatched {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} to {proc.shelter.shelter_name}.', 'success')
     return redirect(url_for('warehouse.dashboard'))
 
@@ -344,6 +347,7 @@ def confirm_transfer(transfer_id):
     transfer.confirmed_at = datetime.utcnow()
     db.session.commit()
 
+    log_activity('warehouse', f'{current_user.username} confirmed transfer of {transfer.quantity} {transfer.metric_unit} of {transfer.sku_name}.', user_id=current_user.id)
     flash(f'Transfer confirmed. {transfer.quantity} {transfer.metric_unit} of {transfer.sku_name} added to your warehouse.', 'success')
     return redirect(url_for('warehouse.transfers'))
 

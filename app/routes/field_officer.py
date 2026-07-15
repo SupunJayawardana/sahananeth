@@ -7,6 +7,7 @@ from app.models.beneficiary import Beneficiary
 from app.models.shelter_registration import ShelterRegistrationRequest
 from app.services.alert_service import check_shelter_inventory_alerts, create_alert
 from app.utils import role_required, active_required
+from app.services.activity_service import log_activity
 
 field_bp = Blueprint('field', __name__)
 
@@ -87,6 +88,7 @@ def create_shelter():
             shelter_id=new_shelter.id
         )
 
+        log_activity('shelter', f'Shelter "{shelter_name}" submitted for approval by {current_user.username}.', user_id=current_user.id)
         flash('Shelter submitted for approval.', 'success')
         return redirect(url_for('field.dashboard'))
 
@@ -207,6 +209,7 @@ def create_procurement():
             shelter_id=shelter_id
         )
 
+        log_activity('procurement', f'New procurement request from "{shelter.shelter_name}" by {current_user.username}: {quantity_needed} {product.default_unit} of {product.name}.', user_id=current_user.id)
         flash('Procurement request submitted.', 'success')
         return redirect(url_for('field.procurement_list'))
 

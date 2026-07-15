@@ -6,6 +6,7 @@ from app.models.shelter import Shelter
 from app.models.beneficiary import Beneficiary
 from app.models.shelter_registration import ShelterRegistrationRequest
 from app.utils import role_required, active_required
+from app.services.activity_service import log_activity
 
 gov_bp = Blueprint('gov', __name__)
 
@@ -38,6 +39,7 @@ def approve_field_officer(user_id):
         return redirect(url_for('gov.dashboard'))
     user.status = 'active'
     db.session.commit()
+    log_activity('user', f'Field Officer {user.username} approved by {current_user.username}.', user_id=current_user.id)
     flash(f'{user.username} has been approved as Field Officer.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -53,6 +55,7 @@ def reject_field_officer(user_id):
         return redirect(url_for('gov.dashboard'))
     user.status = 'rejected'
     db.session.commit()
+    log_activity('user', f'Field Officer {user.username} rejected by {current_user.username}.', user_id=current_user.id)
     flash(f'{user.username} has been rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))
 
@@ -66,6 +69,7 @@ def approve_shelter(shelter_id):
     shelter.status = 'active'
     shelter.approved_by_id = current_user.id
     db.session.commit()
+    log_activity('shelter', f'Shelter "{shelter.shelter_name}" approved by {current_user.username}.', user_id=current_user.id)
     flash(f'Shelter "{shelter.shelter_name}" has been approved.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -78,6 +82,7 @@ def reject_shelter(shelter_id):
     shelter = Shelter.query.get_or_404(shelter_id)
     shelter.status = 'inactive'
     db.session.commit()
+    log_activity('shelter', f'Shelter "{shelter.shelter_name}" rejected by {current_user.username}.', user_id=current_user.id)
     flash(f'Shelter "{shelter.shelter_name}" has been rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))
 
@@ -88,13 +93,30 @@ def reject_shelter(shelter_id):
 def procurement_requests():
     from app.models.procurement import ProcurementRequest
     from app.models.warehouse import Warehouse
+    from app.services.geo_services import find_matching_warehouses
+    import json
+
     requests = ProcurementRequest.query.order_by(
         ProcurementRequest.created_at.desc()
     ).all()
-    warehouses = Warehouse.query.all()
+
+    # Pre-calculate GIS matches for each pending request
+    gis_matches = {}
+    for req in requests:
+        if req.status_state == 'pending' and req.shelter:
+            matches = find_matching_warehouses(
+                req.shelter,
+                req.requested_sku,
+                req.quantity_needed
+            )
+            gis_matches[req.id] = matches
+
+    warehouses = Warehouse.query.filter_by(status='active').all()
+
     return render_template('gov_officer/procurement.html',
                            requests=requests,
-                           warehouses=warehouses)
+                           warehouses=warehouses,
+                           gis_matches=gis_matches)
 
 
 @gov_bp.route('/procurement/approve/<int:request_id>', methods=['POST'])
@@ -110,6 +132,7 @@ def approve_procurement(request_id):
     proc.status_state = 'approved'
     proc.fulfilled_warehouse_id = int(warehouse_id)
     db.session.commit()
+    log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) approved by {current_user.username}.', user_id=current_user.id)
     flash('Procurement request approved and warehouse assigned.', 'success')
     return redirect(url_for('gov.procurement_requests'))
 
@@ -123,6 +146,7 @@ def reject_procurement(request_id):
     proc = ProcurementRequest.query.get_or_404(request_id)
     proc.status_state = 'rejected'
     db.session.commit()
+    log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) rejected by {current_user.username}.', user_id=current_user.id)
     flash('Procurement request rejected.', 'danger')
     return redirect(url_for('gov.procurement_requests'))
 
@@ -177,6 +201,7 @@ def approve_warehouse_manager(user_id):
             db.session.add(assignment)
 
     db.session.commit()
+    log_activity('user', f'Warehouse Manager {user.username} approved by {current_user.username}.', user_id=current_user.id)
     flash(f'{user.username} approved and assigned to warehouses.', 'success')
     return redirect(url_for('gov.warehouse_managers'))
 
@@ -189,6 +214,7 @@ def reject_warehouse_manager(user_id):
     user = User.query.get_or_404(user_id)
     user.status = 'rejected'
     db.session.commit()
+    log_activity('user', f'Warehouse Manager {user.username} rejected by {current_user.username}.', user_id=current_user.id)
     flash(f'{user.username} has been rejected.', 'danger')
     return redirect(url_for('gov.warehouse_managers'))
 
@@ -237,6 +263,7 @@ def create_warehouse():
     )
     db.session.add(warehouse)
     db.session.commit()
+    log_activity('warehouse', f'Warehouse "{warehouse_name}" created by {current_user.username}.', user_id=current_user.id)
     flash(f'Warehouse "{warehouse_name}" created successfully.', 'success')
     return redirect(url_for('gov.warehouses'))
 
@@ -251,6 +278,7 @@ def approve_warehouse(warehouse_id):
     warehouse.status = 'active'
     warehouse.approved_by_id = current_user.id
     db.session.commit()
+    log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" approved by {current_user.username}.', user_id=current_user.id)
     flash(f'Warehouse "{warehouse.warehouse_name}" approved.', 'success')
     return redirect(url_for('gov.warehouses'))
 
@@ -264,6 +292,7 @@ def reject_warehouse(warehouse_id):
     warehouse = Warehouse.query.get_or_404(warehouse_id)
     warehouse.status = 'inactive'
     db.session.commit()
+    log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" rejected by {current_user.username}.', user_id=current_user.id)
     flash(f'Warehouse "{warehouse.warehouse_name}" rejected.', 'danger')
     return redirect(url_for('gov.warehouses'))
 
@@ -325,6 +354,7 @@ def approve_registration(request_id):
         db.session.add(beneficiary)
 
     db.session.commit()
+    log_activity('shelter', f'Citizen registration for "{registration.full_name}" approved by {current_user.username}.', user_id=current_user.id)
     flash('Registration request approved and beneficiary profile verified.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -339,5 +369,6 @@ def reject_registration(request_id):
     registration.reviewed_by_id = current_user.id
     registration.reviewed_at = db.func.now()
     db.session.commit()
+    log_activity('shelter', f'Citizen registration for "{registration.full_name}" rejected by {current_user.username}.', user_id=current_user.id)
     flash('Registration request rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))
