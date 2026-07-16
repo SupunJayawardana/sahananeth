@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---- Custom component classes (previously an inline <style> block
+   in base.html, now compiled alongside Tailwind's utilities) ---- */
+
+body { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; background: #F2F4F3; }
+.font-display { font-family: 'Fraunces', Georgia, serif; }
+.font-mono { font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace; }
+
+.eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #46566B;
+}
+
+/* Contour-line signature texture, used sparingly */
+.contour-bg {
+    background-color: #14213D;
+    background-image:
+        repeating-radial-gradient(circle at 15% 25%, transparent 0, transparent 26px, rgba(255,255,255,0.045) 27px, rgba(255,255,255,0.045) 28px, transparent 29px),
+        repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 34px, rgba(255,255,255,0.04) 35px, rgba(255,255,255,0.04) 36px, transparent 37px);
+}
+
+.ledger-card {
+    background: #fff;
+    border: 1px solid #DCE1E0;
+    border-radius: 0.9rem;
+    border-left-width: 3px;
+}
+.ledger-card.tone-civic { border-left-color: #2456A6; }
+.ledger-card.tone-amber { border-left-color: #D98A2B; }
+.ledger-card.tone-relief { border-left-color: #1F7A6C; }
+.ledger-card.tone-rust { border-left-color: #B5432E; }
+.ledger-card.tone-slate { border-left-color: #46566B; }
+
+.status-pill {
+    font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.status-pending  { background: #FBF1DF; color: #9A6416; }
+.status-approved, .status-verified, .status-active, .status-fulfilled { background: #E4F2EE; color: #1F7A6C; }
+.status-rejected { background: #F7E7E3; color: #B5432E; }
+.status-default  { background: #EAECEE; color: #46566B; }
+
+.badge-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+
+.btn-primary {
+    background: #2456A6; color: #fff; font-weight: 600; font-size: 0.875rem;
+    padding: 0.55rem 1.1rem; border-radius: 0.6rem; transition: background 0.15s ease;
+}
+.btn-primary:hover { background: #1c4587; }
+.btn-secondary {
+    background: #1F7A6C; color: #fff; font-weight: 600; font-size: 0.875rem;
+    padding: 0.55rem 1.1rem; border-radius: 0.6rem; transition: background 0.15s ease;
+}
+.btn-secondary:hover { background: #185f54; }
+.btn-danger {
+    background: #fff; color: #B5432E; font-weight: 600; font-size: 0.8rem; border: 1px solid #E3B8AC;
+    padding: 0.4rem 0.9rem; border-radius: 0.6rem; transition: all 0.15s ease;
+}
+.btn-danger:hover { background: #FBEFEC; }
+.btn-ghost {
+    background: #EAECEE; color: #14213D; font-weight: 600; font-size: 0.875rem;
+    padding: 0.55rem 1.1rem; border-radius: 0.6rem; transition: background 0.15s ease;
+}
+.btn-ghost:hover { background: #DCE1E0; }
+.btn-approve {
+    background: #fff; color: #1F7A6C; font-weight: 600; font-size: 0.8rem; border: 1px solid #BFDCD4;
+    padding: 0.4rem 0.9rem; border-radius: 0.6rem; transition: all 0.15s ease;
+}
+.btn-approve:hover { background: #EEF7F4; }
+
+.icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.icon-lg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
