@@ -292,11 +292,54 @@ def mark_fulfilled(request_id):
     return render_template('field_officer/confirm_received.html', proc=proc_request)
 
 
+@field_bp.route('/aid-requests')
+@login_required
+@role_required('field_officer')
+@active_required
+def aid_requests():
+    """
+    Same gap this closes as gov.aid_requests: CitizenAidRequest previously
+    had no web presence at all, only the two Telegram inline buttons.
+    """
+    from app.models.citizen_aid_request import CitizenAidRequest
+    status_filter = request.args.get('status', 'open')
+    query = CitizenAidRequest.query
+    if status_filter == 'open':
+        query = query.filter(CitizenAidRequest.status.in_(['pending', 'in_progress']))
+    elif status_filter == 'resolved':
+        query = query.filter(CitizenAidRequest.status == 'resolved')
+    requests = query.order_by(CitizenAidRequest.created_at.desc()).all()
+    return render_template('field_officer/aid_requests.html', requests=requests, status_filter=status_filter)
+
+
+@field_bp.route('/aid-requests/<int:aid_id>/in-progress', methods=['POST'])
+@login_required
+@role_required('field_officer')
+@active_required
+def aid_request_in_progress(aid_id):
+    from app.services import approval_service
+    ok, message = approval_service.mark_aid_in_progress(aid_id, current_user)
+    flash(message, 'success' if ok else 'danger')
+    return redirect(url_for('field.aid_requests'))
+
+
+@field_bp.route('/aid-requests/<int:aid_id>/resolve', methods=['POST'])
+@login_required
+@role_required('field_officer')
+@active_required
+def aid_request_resolve(aid_id):
+    from app.services import approval_service
+    ok, message = approval_service.mark_aid_resolved(aid_id, current_user)
+    flash(message, 'success' if ok else 'danger')
+    return redirect(url_for('field.aid_requests'))
+
+
 @field_bp.route('/citizens/register', methods=['GET', 'POST'])
 @login_required
 @role_required('field_officer')
 @active_required
 def register_citizen_to_shelter():
+    from app.services import citizen_service
     shelters = Shelter.query.filter_by(status='active').filter(Shelter.created_by_id == current_user.id).all()
     if request.method == 'POST':
         shelter_id = request.form.get('shelter_id')
@@ -306,22 +349,22 @@ def register_citizen_to_shelter():
         address = request.form.get('address')
         notes = request.form.get('notes')
 
-        profile = Beneficiary.query.filter_by(identification_number=identification_number).first()
-        if not profile:
-            profile = Beneficiary(
-                identification_number=identification_number,
-                full_name=full_name,
-                is_verified=False,
-                created_at=db.func.now()
-            )
-            db.session.add(profile)
+        # Always create/attach a real User account here — previously this
+        # only created a Beneficiary with no login at all, so a citizen
+        # registered in person could never be notified of the outcome and
+        # had no way to check status on the bot or website. This reuses
+        # the same match-by-ID logic the bot uses, so it also won't create
+        # a duplicate record if this citizen already exists.
+        user, profile, created_user = citizen_service.register_or_link_citizen(
+            identification_number=identification_number,
+            full_name=full_name,
+        )
         profile.full_name = full_name
-        profile.is_verified = False
-        profile.user_id = None
+        generated_password = getattr(user, '_generated_password', None)
         db.session.flush()
 
         registration = ShelterRegistrationRequest(
-            citizen_user_id=None,
+            citizen_user_id=user.id,
             shelter_id=int(shelter_id),
             full_name=full_name,
             identification_number=identification_number,
@@ -334,6 +377,11 @@ def register_citizen_to_shelter():
         )
         db.session.add(registration)
         db.session.commit()
+
+        if created_user and generated_password:
+            flash(f'Citizen registered — give them their login: username "{user.username}", '
+                  f'password "{generated_password}" (or they can link this via the bot with /register '
+                  f'using the same ID, or "Connect Telegram" on the website once logged in).', 'info')
         flash('Citizen registration request has been submitted for government verification.', 'success')
         return redirect(url_for('field.dashboard'))
 

@@ -15,6 +15,19 @@
 
     <form method="POST" action="/citizen/register" class="space-y-4">
         <div>
+            <label class="mb-1.5 block text-sm font-medium text-ink">Full name</label>
+            <input type="text" name="full_name" required
+                class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"
+                placeholder="Your full name">
+        </div>
+        <div>
+            <label class="mb-1.5 block text-sm font-medium text-ink">National ID / passport number <span class="text-slate font-normal">(optional)</span></label>
+            <input type="text" name="identification_number"
+                class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"
+                placeholder="If a Field Officer already registered you in person, enter the same ID here">
+            <p class="mt-1 text-xs text-slate">If you were already registered in person at a shelter, entering the same ID connects this account to that record instead of creating a duplicate.</p>
+        </div>
+        <div>
             <label class="mb-1.5 block text-sm font-medium text-ink">Username</label>
             <input type="text" name="username" required
                 class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"

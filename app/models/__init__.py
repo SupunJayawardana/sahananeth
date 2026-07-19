@@ -14,3 +14,4 @@ from app.models.telegram_conversation_state import TelegramConversationState
 from app.models.notification import Notification, NotificationDelivery
 from app.models.password_reset_token import PasswordResetToken
 from app.models.citizen_aid_request import CitizenAidRequest
+from app.models.checkin import CheckIn, CheckInResponse

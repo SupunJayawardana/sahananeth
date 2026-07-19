@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Citizen Aid Requests{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto mt-10 px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <div class="eyebrow">Field Officer · Triage</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Citizen Aid Requests</h1>
+            <p class="mt-1 text-sm text-slate">Free-text help requests submitted by citizens via the Telegram bot or a check-in response.</p>
+        </div>
+        <a href="/field/dashboard" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            Back
+        </a>
+    </div>
+
+    <div class="flex gap-2 mb-6">
+        <a href="?status=open" class="text-sm font-semibold px-4 py-2 rounded-lg {{ 'bg-civic text-white' if status_filter == 'open' else 'btn-ghost' }}">Open</a>
+        <a href="?status=resolved" class="text-sm font-semibold px-4 py-2 rounded-lg {{ 'bg-civic text-white' if status_filter == 'resolved' else 'btn-ghost' }}">Resolved</a>
+        <a href="?status=all" class="text-sm font-semibold px-4 py-2 rounded-lg {{ 'bg-civic text-white' if status_filter == 'all' else 'btn-ghost' }}">All</a>
+    </div>
+
+    {% if requests %}
+    <div class="space-y-3">
+        {% for aid in requests %}
+        <div class="ledger-card {{ 'tone-amber' if aid.status == 'pending' else ('tone-civic' if aid.status == 'in_progress' else 'tone-relief') }} p-4">
+            <div class="flex justify-between items-start gap-3 flex-wrap">
+                <div>
+                    <p class="font-semibold text-ink">{{ aid.citizen.full_name or aid.citizen.username if aid.citizen else 'Unknown citizen' }}</p>
+                    <p class="text-sm text-ink mt-1">"{{ aid.description }}"</p>
+                    <p class="text-xs text-slate mt-1 font-mono">
+                        {{ aid.city or '—' }}, {{ aid.region or '—' }}, {{ aid.country or '—' }}
+                        · {{ aid.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </p>
+                    {% if aid.citizen and aid.citizen.latitude %}
+                    <p class="text-xs text-slate mt-0.5 font-mono flex items-center gap-1">
+                        <svg class="icon" style="width:12px;height:12px"><use href="#icon-pin"/></svg>
+                        {{ aid.citizen.latitude }}, {{ aid.citizen.longitude }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="status-pill status-{{ aid.status }}">{{ aid.status.replace('_', ' ').title() }}</span>
+                    {% if aid.status == 'pending' %}
+                    <form method="POST" action="/field/aid-requests/{{ aid.id }}/in-progress">
+                        <button type="submit" class="btn-secondary text-xs px-3 py-1.5">Start following up</button>
+                    </form>
+                    {% endif %}
+                    {% if aid.status != 'resolved' %}
+                    <form method="POST" action="/field/aid-requests/{{ aid.id }}/resolve">
+                        <button type="submit" class="btn-approve text-xs px-3 py-1.5">Mark resolved</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ledger-card tone-relief p-6 text-center text-slate">No aid requests in this view.</div>
+    {% endif %}
+</div>
+{% endblock %}

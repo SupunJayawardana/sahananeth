@@ -18,6 +18,14 @@
     <div class="ledger-card tone-civic p-6 md:p-8">
         <form method="POST" action="/field/citizens/register" class="space-y-4">
             <div>
+                <label class="mb-1.5 block text-sm font-medium text-ink">Search existing records first</label>
+                <input type="text" placeholder="Search by name or ID — catches people already registered elsewhere"
+                    data-entity-picker="beneficiaries"
+                    data-fill="full_name:label,identification_number:identification_number"
+                    class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40" />
+                <p class="mt-1 text-xs text-slate">If they show up here, picking them fills the fields below — this avoids creating a duplicate record for someone already on file.</p>
+            </div>
+            <div>
                 <label class="mb-1.5 block text-sm font-medium text-ink">Shelter</label>
                 <select name="shelter_id" required class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40">
                     <option value="" disabled selected>Select shelter</option>
@@ -50,4 +58,8 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/entity-picker.js') }}"></script>
 {% endblock %}

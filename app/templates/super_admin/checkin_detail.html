@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ checkin.title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="mx-auto mt-10 max-w-5xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <div class="eyebrow">Safety Check-in</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">{{ checkin.title }}</h1>
+            <p class="mt-1 text-sm text-slate">"{{ checkin.message }}"</p>
+        </div>
+        <a href="/admin/checkins" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            All check-ins
+        </a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="ledger-card tone-slate p-5">
+            <p class="eyebrow">Sent to</p>
+            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ checkin.target_count }}</p>
+        </div>
+        <div class="ledger-card tone-civic p-5">
+            <p class="eyebrow">Responded</p>
+            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ checkin.responded_count }}</p>
+        </div>
+        <div class="ledger-card tone-relief p-5">
+            <p class="eyebrow">Safe</p>
+            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ checkin.safe_count }}</p>
+        </div>
+        <div class="ledger-card tone-rust p-5">
+            <p class="eyebrow">Need help</p>
+            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ checkin.need_help_count }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">🗺️ Response map</h2>
+        <div id="checkin-map" class="w-full rounded-xl border border-gray-200" style="height: 420px;"></div>
+        <div class="flex gap-4 mt-3 text-xs text-gray-500">
+            <span>🟢 Safe</span>
+            <span>🔴 Needs help</span>
+            <span>⚪ No response yet</span>
+        </div>
+    </div>
+
+    {% if no_response %}
+    <h2 class="font-display text-lg font-semibold text-ink mb-3">Not yet responded ({{ no_response|length }})</h2>
+    <div class="ledger-card tone-amber p-4">
+        <ul class="text-sm text-ink space-y-1">
+            {% for r in no_response %}
+            <li>{{ r.user.full_name or r.user.username }}{% if r.user.city %} — {{ r.user.city }}{% endif %}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+var geoData = {{ geo_data | tojson }};
+var map = L.map('checkin-map').setView([7.8731, 80.7718], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+var colors = { safe: '#16a34a', need_help: '#dc2626', no_response: '#9ca3af' };
+geoData.citizens.forEach(function(c) {
+    var color = colors[c.checkin_status] || colors.no_response;
+    var icon = L.divIcon({
+        html: '<div style="background:' + color + ';width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',
+        iconSize: [12, 12], iconAnchor: [6, 6], className: ''
+    });
+    L.marker([c.lat, c.lng], {icon: icon}).addTo(map)
+     .bindPopup('<b>' + c.name + '</b><br>' + c.checkin_status.replace('_', ' '));
+});
+</script>
+{% endblock %}

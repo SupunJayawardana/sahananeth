@@ -126,15 +126,23 @@ def build_segment_query(roles=None, country=None, region=None, city=None,
 
 
 def notify_segment(message, title=None, urgency='info', roles=None, country=None,
-                    region=None, city=None, shelter_id=None, sent_by_id=None):
+                    region=None, city=None, shelter_id=None, sent_by_id=None,
+                    reply_markup=None, users=None):
     """
     Send a manual, criteria-targeted announcement (Track 2 — disaster
     alerts / general announcements). Returns the Notification record,
     which carries delivered/failed/skipped counts.
+
+    reply_markup lets a broadcast carry inline buttons (e.g. check-in
+    campaigns' "I'm safe" / "Need help") — previously not supported here.
+    Pass an explicit `users` list to skip re-deriving the audience from
+    criteria (used by checkin_service, which needs the exact same user
+    list for both the Notification deliveries and the CheckInResponse rows).
     """
-    users = build_segment_query(
-        roles=roles, country=country, region=region, city=city, shelter_id=shelter_id
-    ).all()
+    if users is None:
+        users = build_segment_query(
+            roles=roles, country=country, region=region, city=city, shelter_id=shelter_id
+        ).all()
 
     criteria = {
         'roles': roles, 'country': country, 'region': region,
@@ -153,6 +161,6 @@ def notify_segment(message, title=None, urgency='info', roles=None, country=None
     db.session.flush()
 
     for user in users:
-        _deliver(notification, user)
+        _deliver(notification, user, reply_markup=reply_markup)
     db.session.commit()
     return notification

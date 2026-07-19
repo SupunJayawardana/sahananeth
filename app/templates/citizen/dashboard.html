@@ -18,7 +18,16 @@
             <svg class="icon" style="width:15px;height:15px"><use href="#icon-home"/></svg>
             Request Shelter Registration
         </a>
+        <button type="button" id="share-location-btn" class="btn-secondary flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-pin"/></svg>
+            <span id="share-location-label">
+                {% if current_user.latitude %}Location shared — update{% else %}Share my location{% endif %}
+            </span>
+        </button>
     </div>
+    <p class="text-xs text-slate -mt-6 mb-8">
+        Sharing your location helps us show you the nearest shelter and reach you faster if you need aid.
+    </p>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div class="ledger-card tone-civic p-5">
@@ -62,4 +71,28 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('share-location-btn').addEventListener('click', function () {
+    const label = document.getElementById('share-location-label');
+    if (!navigator.geolocation) {
+        label.textContent = 'Location not supported on this device';
+        return;
+    }
+    label.textContent = 'Getting location…';
+    navigator.geolocation.getCurrentPosition(function (pos) {
+        fetch('/citizen/location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+        }).then((r) => r.json()).then((data) => {
+            label.textContent = data.ok ? 'Location shared — update' : 'Could not save location';
+        }).catch(() => { label.textContent = 'Could not save location'; });
+    }, function () {
+        label.textContent = 'Location permission denied';
+    });
+});
+</script>
 {% endblock %}

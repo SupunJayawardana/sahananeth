@@ -35,6 +35,14 @@ class User(UserMixin, db.Model):
     region = db.Column(db.String(100), nullable=True)   # state / province / district
     city = db.Column(db.String(100), nullable=True)
 
+    # --- GPS coordinates, captured via browser geolocation (web) or a
+    #     shared Telegram location message (bot). Distinct from the
+    #     free-text country/region/city above — this is what actually
+    #     powers distance/proximity calculations. ---
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
+    location_updated_at = db.Column(db.DateTime, nullable=True)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 

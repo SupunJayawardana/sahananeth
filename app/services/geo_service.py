@@ -103,9 +103,44 @@ def find_matching_warehouses(shelter, requested_sku, quantity_needed):
     return results
 
 
-def get_all_locations_geojson():
+def get_citizen_points(checkin_id=None):
     """
-    Returns all shelters and warehouses as GeoJSON-compatible
+    Citizen location points for the analytics map. Previously there was
+    no citizen layer at all — only shelters/warehouses. If checkin_id is
+    given, each point is colored by that check-in's response status
+    instead of just being a plain dot, so "how many people have
+    responded, and where" is visible directly on the map.
+    """
+    from app.models.user import User
+    query = User.query.filter(
+        User.role_level == 'citizen',
+        User.latitude.isnot(None),
+        User.longitude.isnot(None),
+    )
+    users = query.all()
+
+    status_by_user = {}
+    if checkin_id:
+        from app.models.checkin import CheckInResponse
+        for r in CheckInResponse.query.filter_by(checkin_id=checkin_id).all():
+            status_by_user[r.user_id] = 'no_response' if r.status == 'pending' else r.status
+
+    points = []
+    for u in users:
+        points.append({
+            'id': u.id,
+            'name': u.full_name or u.username,
+            'lat': u.latitude,
+            'lng': u.longitude,
+            'type': 'citizen',
+            'checkin_status': status_by_user.get(u.id, 'no_response' if checkin_id else None),
+        })
+    return points
+
+
+def get_all_locations_geojson(checkin_id=None):
+    """
+    Returns shelters, warehouses, and citizens as GeoJSON-compatible
     dict for Leaflet.js map rendering.
     """
     shelters = Shelter.query.filter_by(status='active').all()
@@ -154,5 +189,6 @@ def get_all_locations_geojson():
 
     return {
         'shelters': shelter_points,
-        'warehouses': warehouse_points
+        'warehouses': warehouse_points,
+        'citizens': get_citizen_points(checkin_id=checkin_id),
     }

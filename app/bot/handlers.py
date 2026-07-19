@@ -25,6 +25,7 @@ from app.models.shelter_registration import ShelterRegistrationRequest
 from app.services import telegram_api
 from app.services.activity_service import log_activity
 from app.services import approval_service
+from app.services import checkin_service
 
 
 def _reply(chat_id, text):
@@ -116,6 +117,8 @@ def handle_help(chat_id):
         lines.append("/status — check the status of your requests")
         if user.role_level == 'citizen':
             lines.append("/requestaid — quickly request help/supplies")
+            lines.append("/requestshelter — register at a nearby shelter")
+            lines.append("📎 Share your location any time — helps us find the nearest shelter and reach you faster")
     lines.append("/stop — pause notifications")
     lines.append("/resume — resume notifications")
     lines.append("/help — show this message")
@@ -267,38 +270,32 @@ def continue_register(chat_id, state, text):
 
     if step == 'confirm':
         if text.strip().lower() in ('yes', 'y'):
-            username = _generate_username()
-            password = _generate_password()
-            user = User(
-                username=username,
-                full_name=data['full_name'],
-                role_level='citizen',
-                status='active',
-                country=data['country'],
-                region=data['region'],
-                city=data['city'],
-                telegram_chat_id=str(chat_id),
-                telegram_linked_at=datetime.utcnow(),
-            )
-            user.set_password(password)
-            db.session.add(user)
-            db.session.flush()
-
-            db.session.add(Beneficiary(
+            from app.services import citizen_service
+            user, beneficiary, created = citizen_service.register_or_link_citizen(
                 identification_number=data['id_number'],
                 full_name=data['full_name'],
-                is_verified=False,
-                user_id=user.id,
-            ))
+                extra_user_fields={
+                    'country': data['country'],
+                    'region': data['region'],
+                    'city': data['city'],
+                },
+            )
+            password = getattr(user, '_generated_password', None)
+            user.telegram_chat_id = str(chat_id)
+            user.telegram_linked_at = datetime.utcnow()
             log_activity('user', f'Citizen {user.username} self-registered via Telegram bot.', user_id=user.id)
             db.session.commit()
 
             _clear_state(chat_id)
-            _reply(chat_id,
-                   f"✅ You're registered! Your account username is <b>{username}</b> "
-                   f"(password: <b>{password}</b>) if you ever want to log into the website — "
-                   f"but you can do everything right here too.\n\n"
-                   f"Send /requestaid any time you need help.")
+            if password:
+                _reply(chat_id,
+                       f"✅ You're registered! Your account username is <b>{user.username}</b> "
+                       f"(password: <b>{password}</b>) if you ever want to log into the website — "
+                       f"but you can do everything right here too.\n\n"
+                       f"Send /requestaid any time you need help.")
+            else:
+                _reply(chat_id, f"✅ Connected! Welcome, {user.full_name or user.username}.\n\n"
+                                f"Send /requestaid any time you need help.")
         else:
             _clear_state(chat_id)
             _reply(chat_id, "No problem — send /register whenever you're ready to try again.")
@@ -420,6 +417,128 @@ def continue_request_aid(chat_id, state, text):
 
 
 # ---------------------------------------------------------------------
+# /requestshelter flow — previously the bot had no way to request a
+# shelter spot at all, only the free-text /requestaid. Mirrors the
+# existing web citizen.shelter_request flow and reuses the same
+# apr_reg/rej_reg approval plumbing, so nothing on the approval side
+# needs to change for this to work end to end.
+# ---------------------------------------------------------------------
+
+def _shelter_list_text(shelters, user):
+    from app.services.geo_service import haversine_distance
+    lines = []
+    ranked = shelters
+    if user and user.latitude is not None and user.longitude is not None:
+        def _dist(s):
+            if s.latitude is None or s.longitude is None:
+                return float('inf')
+            return haversine_distance(user.latitude, user.longitude, s.latitude, s.longitude)
+        ranked = sorted(shelters, key=_dist)
+    for i, s in enumerate(ranked, start=1):
+        dist_note = ''
+        if user and user.latitude is not None and s.latitude is not None:
+            d = haversine_distance(user.latitude, user.longitude, s.latitude, s.longitude)
+            dist_note = f' — {d:.1f} km away'
+        lines.append(f"{i}. {s.shelter_name}{dist_note} ({s.available_slots} slots free)")
+    return ranked, "\n".join(lines)
+
+
+def start_request_shelter(chat_id):
+    user = _linked_user(chat_id)
+    if not user:
+        _reply(chat_id, "You'll need an account first — send /register to set one up (takes under a minute).")
+        return
+    shelters = Shelter.query.filter_by(status='active').all()
+    if not shelters:
+        _reply(chat_id, "There are no active shelters listed right now. Please check back later.")
+        return
+    ranked, listing = _shelter_list_text(shelters, user)
+    _set_state(chat_id, 'request_shelter', 'choose_shelter', {'shelter_ids': [s.id for s in ranked]})
+    if user.latitude is None:
+        _reply(chat_id, "Tip: share your location (📎 → Location) any time and I'll sort this list by "
+                        "distance next time.\n\n")
+    _reply(chat_id, "Which shelter would you like to register at? Reply with the number:\n\n" + listing)
+
+
+def continue_request_shelter(chat_id, state, text):
+    data = state.get_data()
+    step = state.step
+    user = _linked_user(chat_id)
+
+    if step == 'choose_shelter':
+        try:
+            idx = int(text.strip()) - 1
+            shelter_id = data['shelter_ids'][idx]
+        except (ValueError, IndexError):
+            _reply(chat_id, "Please reply with just the number next to the shelter you want.")
+            return
+        data['shelter_id'] = shelter_id
+        _set_state(chat_id, 'request_shelter', 'id_number', data)
+        _reply(chat_id, "What's your national ID / passport number?")
+        return
+
+    if step == 'id_number':
+        data['id_number'] = text.strip()
+        _set_state(chat_id, 'request_shelter', 'confirm', data)
+        shelter = Shelter.query.get(data['shelter_id'])
+        _reply(chat_id, f"Submit a registration request for <b>{shelter.shelter_name}</b> "
+                        f"under ID {data['id_number']}?\n\nReply <b>yes</b> to submit, or <b>no</b> to cancel.")
+        return
+
+    if step == 'confirm':
+        if text.strip().lower() in ('yes', 'y'):
+            shelter = Shelter.query.get(data['shelter_id'])
+            reg = ShelterRegistrationRequest(
+                citizen_user_id=user.id,
+                shelter_id=shelter.id,
+                full_name=user.full_name or user.username,
+                identification_number=data['id_number'],
+                phone_number=None,
+                status='pending',
+                created_by_role='citizen',
+                created_by_id=user.id,
+            )
+            db.session.add(reg)
+            log_activity('shelter', f'Citizen {user.username} requested shelter "{shelter.shelter_name}" via Telegram bot.', user_id=user.id)
+            db.session.commit()
+
+            from app.services.notification_service import notify_role
+            reg_kb = telegram_api.build_inline_keyboard([[
+                ('✅ Approve', f'apr_reg:{reg.id}'),
+                ('❌ Reject', f'rej_reg:{reg.id}'),
+            ]])
+            notify_role('gov_officer', f'New shelter registration request from {reg.full_name} '
+                                        f'for {shelter.shelter_name} (via bot).',
+                        title='New registration request', urgency='info', reply_markup=reg_kb)
+
+            _clear_state(chat_id)
+            _reply(chat_id, "✅ Your shelter registration request has been submitted for review. "
+                            "Send /status any time to check on it.")
+        else:
+            _clear_state(chat_id)
+            _reply(chat_id, "Cancelled. Send /requestshelter whenever you're ready.")
+        return
+
+
+# ---------------------------------------------------------------------
+# Live location — Telegram sends this as message.location, not text, so
+# it needs its own branch in process_update (see below). Previously any
+# location share was silently ignored by the bot.
+# ---------------------------------------------------------------------
+
+def handle_location(chat_id, latitude, longitude):
+    user = _linked_user(chat_id)
+    if not user:
+        _reply(chat_id, "Thanks — send /register first so I can attach this to your account.")
+        return
+    user.latitude = latitude
+    user.longitude = longitude
+    user.location_updated_at = datetime.utcnow()
+    db.session.commit()
+    _reply(chat_id, "📍 Location saved. This helps us find the nearest shelter and dispatch help to you faster.")
+
+
+# ---------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------
 
@@ -431,11 +550,13 @@ COMMAND_HANDLERS = {
     '/resume': lambda chat_id, args: handle_resume(chat_id),
     '/register': lambda chat_id, args: start_register(chat_id),
     '/requestaid': lambda chat_id, args: start_request_aid(chat_id),
+    '/requestshelter': lambda chat_id, args: start_request_shelter(chat_id),
 }
 
 CONTINUATION_HANDLERS = {
     'register': continue_register,
     'request_aid': continue_request_aid,
+    'request_shelter': continue_request_shelter,
 }
 
 
@@ -456,6 +577,8 @@ CALLBACK_ACTIONS = {
     'rej_reg': approval_service.reject_registration,
     'aid_prog': approval_service.mark_aid_in_progress,
     'aid_done': approval_service.mark_aid_resolved,
+    'chk_safe': checkin_service.mark_safe,
+    'chk_help': checkin_service.mark_need_help,
 }
 
 
@@ -501,8 +624,17 @@ def process_update(update):
         return
 
     message = update.get('message')
-    if not message or 'text' not in message:
-        return  # ignore non-text updates (photos, stickers, edits, etc.)
+    if not message:
+        return
+
+    if 'location' in message:
+        chat_id = message['chat']['id']
+        loc = message['location']
+        handle_location(chat_id, loc.get('latitude'), loc.get('longitude'))
+        return
+
+    if 'text' not in message:
+        return  # ignore other non-text updates (photos, stickers, edits, etc.)
 
     chat_id = message['chat']['id']
     text = message['text'].strip()

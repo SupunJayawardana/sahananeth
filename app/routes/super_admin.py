@@ -386,8 +386,26 @@ def analytics():
                 'stock_items': stock_items,
             })
 
-    geo_data = {'shelters': shelters_geo, 'warehouses': warehouses_geo}
+    # --- Citizen location points (previously no citizen layer existed at all) ---
+    citizens_geo = []
+    citizen_users = User.query.filter(
+        User.role_level == 'citizen',
+        User.latitude.isnot(None),
+        User.longitude.isnot(None),
+    ).all()
+    for u in citizen_users:
+        citizens_geo.append({
+            'name': u.full_name or u.username,
+            'lat': u.latitude,
+            'lng': u.longitude,
+        })
+
+    geo_data = {'shelters': shelters_geo, 'warehouses': warehouses_geo, 'citizens': citizens_geo}
     recent_activity = get_recent_activity(25)
+
+    # --- Recent check-in campaigns (response-rate summary) ---
+    from app.models.checkin import CheckIn
+    recent_checkins = CheckIn.query.order_by(CheckIn.created_at.desc()).limit(5).all()
 
     return render_template('super_admin/analytics.html',
                            user_stats=user_stats,
@@ -397,7 +415,8 @@ def analytics():
                            procurement_stats=procurement_stats,
                            procurement_chart=procurement_chart,
                            geo_data=geo_data,
-                           recent_activity=recent_activity)
+                           recent_activity=recent_activity,
+                           recent_checkins=recent_checkins)
 
 
 @admin_bp.route('/announcements', methods=['GET', 'POST'])
@@ -462,3 +481,93 @@ def announcements():
     return render_template('super_admin/announcements.html',
                            shelters=shelters, countries=countries, regions=regions, cities=cities,
                            preview_count=preview_count, form_values=form_values, history=history)
+
+
+@admin_bp.route('/checkins', methods=['GET', 'POST'])
+@login_required
+@role_required('super_admin')
+def checkins():
+    """
+    "Are you safe?" / roll-call campaigns. Same targeting shape as
+    Announcements, but tracks per-recipient responses (via checkin_service)
+    instead of just delivery — so this screen can show "X of Y responded,
+    Z need help" rather than just "sent to N people".
+    """
+    from app.models.checkin import CheckIn
+    from app.services import checkin_service
+
+    shelters = Shelter.query.filter_by(status='active').order_by(Shelter.shelter_name).all()
+    countries = sorted({u.country for u in User.query.filter(User.country.isnot(None)).all()})
+    regions = sorted({u.region for u in User.query.filter(User.region.isnot(None)).all()})
+    cities = sorted({u.city for u in User.query.filter(User.city.isnot(None)).all()})
+
+    preview_count = None
+    form_values = {}
+
+    if request.method == 'POST':
+        roles = request.form.getlist('roles')
+        country = request.form.get('country', '').strip() or None
+        region = request.form.get('region', '').strip() or None
+        city = request.form.get('city', '').strip() or None
+        shelter_id = request.form.get('shelter_id', '').strip()
+        shelter_id = int(shelter_id) if shelter_id else None
+        title = request.form.get('title', '').strip()
+        message = request.form.get('message', '').strip()
+
+        form_values = {
+            'roles': roles, 'country': country, 'region': region, 'city': city,
+            'shelter_id': shelter_id, 'title': title, 'message': message,
+        }
+
+        if 'preview' in request.form:
+            preview_count = build_segment_query(
+                roles=roles or None, country=country, region=region, city=city, shelter_id=shelter_id
+            ).count()
+        elif 'send' in request.form:
+            if not message or not title:
+                flash('Title and message are both required.', 'danger')
+            else:
+                checkin = checkin_service.launch_checkin(
+                    title, message, roles=roles or None, country=country, region=region,
+                    city=city, shelter_id=shelter_id, sent_by_id=current_user.id,
+                )
+                log_activity('user', f'{current_user.username} launched check-in "{title}" to '
+                                      f'{checkin.target_count} recipient(s).', user_id=current_user.id)
+                flash(f'Check-in sent to {checkin.target_count} people. Responses will appear below as they come in.', 'success')
+                return redirect(url_for('admin.checkins'))
+
+    history = CheckIn.query.order_by(CheckIn.created_at.desc()).limit(20).all()
+
+    return render_template('super_admin/checkins.html',
+                           shelters=shelters, countries=countries, regions=regions, cities=cities,
+                           preview_count=preview_count, form_values=form_values, history=history)
+
+
+@admin_bp.route('/checkins/<int:checkin_id>')
+@login_required
+@role_required('super_admin')
+def checkin_detail(checkin_id):
+    from app.models.checkin import CheckIn
+    from app.services.geo_service import get_all_locations_geojson
+    checkin = CheckIn.query.get_or_404(checkin_id)
+    geo_data = get_all_locations_geojson(checkin_id=checkin_id)
+    no_response = [r for r in checkin.responses if r.status == 'pending']
+    return render_template('super_admin/checkin_detail.html', checkin=checkin,
+                           geo_data=geo_data, no_response=no_response)
+
+
+# ─── Citizen verification / beneficiary directory ───────────────────────────
+# Previously there was no screen anywhere — for either Gov Officer or Super
+# Admin — to browse or search citizen verification records at all. The only
+# way a Beneficiary record became visible to staff was as a side effect of
+# approving a specific ShelterRegistrationRequest.
+
+@admin_bp.route('/beneficiaries')
+@login_required
+@role_required('super_admin')
+def beneficiaries():
+    from app.services.beneficiary_service import search_and_filter
+    q = request.args.get('q', '').strip()
+    verified = request.args.get('verified', '')  # '', 'yes', 'no'
+    results = search_and_filter(q=q, verified=verified)
+    return render_template('super_admin/beneficiaries.html', results=results, q=q, verified=verified)

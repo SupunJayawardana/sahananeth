@@ -29,10 +29,30 @@
         </div>
     </div>
 
+    <!-- Recent check-in response rates -->
+    {% if recent_checkins %}
+    <div class="bg-white rounded-xl shadow p-5 mb-8">
+        <div class="flex items-center justify-between mb-3">
+            <h2 class="text-lg font-semibold text-gray-700">🆘 Recent Safety Check-ins</h2>
+            <a href="/admin/checkins" class="text-sm text-blue-600 hover:underline">Launch a new check-in →</a>
+        </div>
+        <div class="space-y-2">
+            {% for c in recent_checkins %}
+            <a href="/admin/checkins/{{ c.id }}" class="block rounded-lg border border-gray-100 hover:border-blue-200 px-4 py-2.5 text-sm">
+                <span class="font-medium text-gray-800">{{ c.title }}</span>
+                <span class="text-gray-500"> — {{ c.responded_count }}/{{ c.target_count }} responded</span>
+                <span class="text-green-600"> · {{ c.safe_count }} safe</span>
+                <span class="text-red-600"> · {{ c.need_help_count }} need help</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- GIS Map -->
     <div class="bg-white rounded-xl shadow p-5 mb-8">
         <h2 class="text-lg font-semibold text-gray-700 mb-3">
-            🗺️ GIS Overview — All Shelters & Warehouses
+            🗺️ GIS Overview — Shelters, Warehouses & Citizens
         </h2>
         <div id="analytics-map" class="w-full rounded-xl border border-gray-200"
             style="height: 450px;">
@@ -288,6 +308,16 @@ geoData.warehouses.forEach(function(w) {
      );
 });
 
+// Citizen markers — previously this map had no citizen layer at all.
+geoData.citizens.forEach(function(c) {
+    var icon = L.divIcon({
+        html: '<div style="background:#7c3aed;width:9px;height:9px;border-radius:50%;border:1.5px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.3)"></div>',
+        iconSize: [9, 9], iconAnchor: [4, 4], className: ''
+    });
+    L.marker([c.lat, c.lng], {icon: icon}).addTo(map)
+     .bindPopup('<b>👤 ' + c.name + '</b>');
+});
+
 // Legend
 var legend = L.control({position: 'bottomright'});
 legend.onAdd = function() {
@@ -297,6 +327,7 @@ legend.onAdd = function() {
         '<b style="display:block;margin-bottom:6px">Legend</b>' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:12px;height:12px;background:#ef4444;border-radius:50%"></div> Shelter</div>' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:12px;height:12px;background:#2563eb;border-radius:3px"></div> Warehouse</div>' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:9px;height:9px;background:#7c3aed;border-radius:50%"></div> Citizen</div>' +
         '<div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;background:#f59e0b;border-radius:3px"></div> Low Stock</div>';
     return div;
 };

@@ -358,35 +358,76 @@ def assign_warehouse_manager():
     return redirect(url_for('gov.warehouses'))
 
 
+@gov_bp.route('/aid-requests')
+@login_required
+@role_required('gov_officer')
+@active_required
+def aid_requests():
+    """
+    Previously CitizenAidRequest had NO web route or template anywhere —
+    it was created only by the bot's /requestaid flow and could only be
+    triaged via the two Telegram inline buttons. A Gov Officer who wasn't
+    on Telegram, or who lost the message, had no way to ever see it again.
+    """
+    from app.models.citizen_aid_request import CitizenAidRequest
+    status_filter = request.args.get('status', 'open')  # open | resolved | all
+    query = CitizenAidRequest.query
+    if status_filter == 'open':
+        query = query.filter(CitizenAidRequest.status.in_(['pending', 'in_progress']))
+    elif status_filter == 'resolved':
+        query = query.filter(CitizenAidRequest.status == 'resolved')
+    requests = query.order_by(CitizenAidRequest.created_at.desc()).all()
+    return render_template('gov_officer/aid_requests.html', requests=requests, status_filter=status_filter)
+
+
+@gov_bp.route('/aid-requests/<int:aid_id>/in-progress', methods=['POST'])
+@login_required
+@role_required('gov_officer')
+@active_required
+def aid_request_in_progress(aid_id):
+    from app.services import approval_service
+    ok, message = approval_service.mark_aid_in_progress(aid_id, current_user)
+    flash(message, 'success' if ok else 'danger')
+    return redirect(url_for('gov.aid_requests'))
+
+
+@gov_bp.route('/aid-requests/<int:aid_id>/resolve', methods=['POST'])
+@login_required
+@role_required('gov_officer')
+@active_required
+def aid_request_resolve(aid_id):
+    from app.services import approval_service
+    ok, message = approval_service.mark_aid_resolved(aid_id, current_user)
+    flash(message, 'success' if ok else 'danger')
+    return redirect(url_for('gov.aid_requests'))
+
+
+@gov_bp.route('/beneficiaries')
+@login_required
+@role_required('gov_officer')
+@active_required
+def beneficiaries():
+    from app.services.beneficiary_service import search_and_filter
+    q = request.args.get('q', '').strip()
+    verified = request.args.get('verified', '')
+    results = search_and_filter(q=q, verified=verified)
+    return render_template('gov_officer/beneficiaries.html', results=results, q=q, verified=verified)
+
+
 @gov_bp.route('/registrations/approve/<int:request_id>')
 @login_required
 @role_required('gov_officer')
 @active_required
 def approve_registration(request_id):
-    registration = ShelterRegistrationRequest.query.get_or_404(request_id)
-    registration.status = 'approved'
-    registration.reviewed_by_id = current_user.id
-    registration.reviewed_at = db.func.now()
-
-    beneficiary = Beneficiary.query.filter_by(identification_number=registration.identification_number).first()
-    if beneficiary:
-        beneficiary.is_verified = True
-        beneficiary.allocated_shelter_id = registration.shelter_id
-    else:
-        beneficiary = Beneficiary(
-            identification_number=registration.identification_number,
-            full_name=registration.full_name,
-            is_verified=True,
-            allocated_shelter_id=registration.shelter_id
-        )
-        db.session.add(beneficiary)
-
-    db.session.commit()
-    log_activity('shelter', f'Citizen registration for "{registration.full_name}" approved by {current_user.username}.', user_id=current_user.id)
-    if registration.citizen:
-        notify_user(registration.citizen, f'Your shelter registration at "{registration.shelter.shelter_name}" has been approved.',
-                    title='Registration approved', urgency='info')
-    flash('Registration request approved and beneficiary profile verified.', 'success')
+    # Delegates to approval_service so the web button and the Telegram
+    # inline button run the exact same logic — this used to be
+    # reimplemented here and had drifted (it never linked the new
+    # Beneficiary back to registration.citizen_user_id, so a citizen who
+    # self-submitted from the website and got approved from the website
+    # ended up "verified" with no way for their own dashboard to find it).
+    from app.services import approval_service
+    ok, message = approval_service.approve_registration(request_id, current_user)
+    flash(message, 'success' if ok else 'danger')
     return redirect(url_for('gov.dashboard'))
 
 
@@ -395,14 +436,7 @@ def approve_registration(request_id):
 @role_required('gov_officer')
 @active_required
 def reject_registration(request_id):
-    registration = ShelterRegistrationRequest.query.get_or_404(request_id)
-    registration.status = 'rejected'
-    registration.reviewed_by_id = current_user.id
-    registration.reviewed_at = db.func.now()
-    db.session.commit()
-    log_activity('shelter', f'Citizen registration for "{registration.full_name}" rejected by {current_user.username}.', user_id=current_user.id)
-    if registration.citizen:
-        notify_user(registration.citizen, f'Your shelter registration at "{registration.shelter.shelter_name}" was not approved.',
-                    title='Registration rejected', urgency='warning')
-    flash('Registration request rejected.', 'danger')
+    from app.services import approval_service
+    ok, message = approval_service.reject_registration(request_id, current_user)
+    flash(message, 'danger' if ok else 'warning')
     return redirect(url_for('gov.dashboard'))
