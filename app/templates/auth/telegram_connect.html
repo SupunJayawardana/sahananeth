@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Connect Telegram{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-10 max-w-lg px-4 pb-16">
+    <div class="mb-6">
+        <div class="eyebrow">Notifications</div>
+        <h1 class="font-display text-2xl font-semibold text-ink mt-1">Connect Telegram</h1>
+        <p class="text-slate text-sm mt-1">
+            Get instant alerts for approvals, dispatches, low stock, and announcements
+            directly in Telegram.
+        </p>
+    </div>
+
+    {% if current_user.telegram_linked %}
+    <div class="ledger-card tone-relief p-5">
+        <p class="font-semibold text-relief flex items-center gap-2">
+            <svg class="icon" style="width:16px;height:16px"><use href="#icon-check-circle"/></svg>
+            Telegram is connected
+        </p>
+        <p class="text-sm text-slate mt-1">
+            Connected {{ current_user.telegram_linked_at.strftime('%Y-%m-%d %H:%M') if current_user.telegram_linked_at else '' }}.
+        </p>
+        <a href="/auth/telegram/disconnect" class="btn-danger inline-flex items-center gap-1.5 mt-4">
+            Disconnect
+        </a>
+    </div>
+    {% elif not bot_configured %}
+    <div class="ledger-card tone-amber p-5">
+        <p class="font-semibold text-amber">Bot not configured yet</p>
+        <p class="text-sm text-slate mt-1">
+            The administrator hasn't set up the Telegram bot on this deployment yet.
+            Check back later.
+        </p>
+    </div>
+    {% else %}
+    <div class="ledger-card tone-civic p-5">
+        <p class="font-semibold text-ink">Tap the button below on your phone</p>
+        <p class="text-sm text-slate mt-1">
+            This opens Telegram and links your account automatically. The link expires
+            in 30 minutes.
+        </p>
+        <a href="{{ deep_link }}" target="_blank" class="btn-primary inline-flex items-center gap-2 mt-4">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            Open in Telegram
+        </a>
+        <p class="text-xs text-slate mt-4 font-mono break-all">{{ deep_link }}</p>
+    </div>
+    {% endif %}
+
+    <a href="/auth/dashboard" class="btn-ghost inline-flex items-center gap-2 mt-6">
+        <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+        Back to dashboard
+    </a>
+</div>
+{% endblock %}

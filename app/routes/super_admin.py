@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.shelter import Shelter
 from app.utils import role_required
 from app.services.activity_service import log_activity
+from app.services.notification_service import notify_user, notify_role, notify_segment, build_segment_query
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -29,6 +30,8 @@ def approve_user(user_id):
     user.status = 'active'
     db.session.commit()
     log_activity('user', f'{user.username} ({user.role_level}) approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, f'Your {user.role_level.replace("_", " ").title()} account has been approved. You can now log in.',
+                title='Account approved', urgency='info')
     flash(f'{user.username} has been approved.', 'success')
     return redirect(url_for('admin.dashboard'))
 
@@ -41,6 +44,8 @@ def reject_user(user_id):
     user.status = 'rejected'
     db.session.commit()
     log_activity('user', f'{user.username} ({user.role_level}) rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, 'Your account application has been rejected. Contact an administrator for details.',
+                title='Account rejected', urgency='warning')
     flash(f'{user.username} has been rejected.', 'danger')
     return redirect(url_for('admin.dashboard'))
 
@@ -54,6 +59,8 @@ def approve_shelter(shelter_id):
     shelter.approved_by_id = current_user.id
     db.session.commit()
     log_activity('shelter', f'Shelter "{shelter.shelter_name}" approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(shelter.created_by, f'Your shelter "{shelter.shelter_name}" has been approved and is now active.',
+                title='Shelter approved', urgency='info')
     flash(f'Shelter "{shelter.shelter_name}" has been approved.', 'success')
     return redirect(url_for('admin.dashboard'))
 
@@ -66,6 +73,8 @@ def reject_shelter(shelter_id):
     shelter.status = 'inactive'
     db.session.commit()
     log_activity('shelter', f'Shelter "{shelter.shelter_name}" rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(shelter.created_by, f'Your shelter "{shelter.shelter_name}" was not approved.',
+                title='Shelter rejected', urgency='warning')
     flash(f'Shelter "{shelter.shelter_name}" has been rejected.', 'danger')
     return redirect(url_for('admin.dashboard'))
 
@@ -110,6 +119,14 @@ def approve_procurement(request_id):
     proc.fulfilled_warehouse_id = int(warehouse_id)
     db.session.commit()
     log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(proc.requested_by,
+                f'Your request for {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} has been approved.',
+                title='Procurement approved', urgency='info')
+    for a in proc.fulfilled_warehouse.assignments:
+        notify_user(a.user,
+                    f'New dispatch task: {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} '
+                    f'for {proc.shelter.shelter_name}.',
+                    title='New dispatch task', urgency='warning')
     flash('Procurement request approved.', 'success')
     return redirect(url_for('admin.procurement_requests'))
 
@@ -123,6 +140,9 @@ def reject_procurement(request_id):
     proc.status_state = 'rejected'
     db.session.commit()
     log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(proc.requested_by,
+                f'Your request for {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} was rejected.',
+                title='Procurement rejected', urgency='warning')
     flash('Procurement request rejected.', 'danger')
     return redirect(url_for('admin.procurement_requests'))
 
@@ -181,6 +201,8 @@ def approve_warehouse(warehouse_id):
     warehouse.approved_by_id = current_user.id
     db.session.commit()
     log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(warehouse.created_by, f'Your warehouse "{warehouse.warehouse_name}" has been approved and is now active.',
+                title='Warehouse approved', urgency='info')
     flash(f'Warehouse "{warehouse.warehouse_name}" approved.', 'success')
     return redirect(url_for('admin.warehouses'))
 
@@ -194,6 +216,8 @@ def reject_warehouse(warehouse_id):
     warehouse.status = 'inactive'
     db.session.commit()
     log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(warehouse.created_by, f'Your warehouse "{warehouse.warehouse_name}" was not approved.',
+                title='Warehouse rejected', urgency='warning')
     flash(f'Warehouse "{warehouse.warehouse_name}" rejected.', 'danger')
     return redirect(url_for('admin.warehouses'))
 
@@ -264,11 +288,15 @@ def toggle_user_status(user_id):
         user.status = 'rejected'
         db.session.commit()
         log_activity('user', f'{user.username} ({user.role_level}) deactivated by {current_user.username}.', user_id=current_user.id)
+        notify_user(user, 'Your account has been deactivated. Contact an administrator for details.',
+                    title='Account deactivated', urgency='warning')
         flash(f'{user.username} has been deactivated.', 'danger')
     else:
         user.status = 'active'
         db.session.commit()
         log_activity('user', f'{user.username} ({user.role_level}) reactivated by {current_user.username}.', user_id=current_user.id)
+        notify_user(user, 'Your account has been reactivated. You can log in again.',
+                    title='Account reactivated', urgency='info')
         flash(f'{user.username} has been reactivated.', 'success')
 
     return redirect(url_for('admin.users'))
@@ -370,3 +398,67 @@ def analytics():
                            procurement_chart=procurement_chart,
                            geo_data=geo_data,
                            recent_activity=recent_activity)
+
+
+@admin_bp.route('/announcements', methods=['GET', 'POST'])
+@login_required
+@role_required('super_admin')
+def announcements():
+    from app.models.shelter import Shelter
+    from app.models.notification import Notification
+
+    shelters = Shelter.query.filter_by(status='active').order_by(Shelter.shelter_name).all()
+
+    # Distinct existing location values, just to power <datalist> suggestions —
+    # doesn't restrict input, so this still works for any country in the world.
+    countries = sorted({u.country for u in User.query.filter(User.country.isnot(None)).all()})
+    regions = sorted({u.region for u in User.query.filter(User.region.isnot(None)).all()})
+    cities = sorted({u.city for u in User.query.filter(User.city.isnot(None)).all()})
+
+    preview_count = None
+    form_values = {}
+
+    if request.method == 'POST':
+        roles = request.form.getlist('roles')
+        country = request.form.get('country', '').strip() or None
+        region = request.form.get('region', '').strip() or None
+        city = request.form.get('city', '').strip() or None
+        shelter_id = request.form.get('shelter_id', '').strip()
+        shelter_id = int(shelter_id) if shelter_id else None
+        title = request.form.get('title', '').strip()
+        message = request.form.get('message', '').strip()
+        urgency = request.form.get('urgency', 'info')
+
+        form_values = {
+            'roles': roles, 'country': country, 'region': region, 'city': city,
+            'shelter_id': shelter_id, 'title': title, 'message': message, 'urgency': urgency,
+        }
+
+        if 'preview' in request.form:
+            preview_count = build_segment_query(
+                roles=roles or None, country=country, region=region, city=city, shelter_id=shelter_id
+            ).count()
+        elif 'send' in request.form:
+            if not message:
+                flash('Message text is required.', 'danger')
+            else:
+                notification = notify_segment(
+                    message, title=title or None, urgency=urgency,
+                    roles=roles or None, country=country, region=region, city=city,
+                    shelter_id=shelter_id, sent_by_id=current_user.id
+                )
+                log_activity('user', f'{current_user.username} sent an announcement to '
+                                      f'{len(notification.deliveries)} recipient(s): "{title or message[:40]}".',
+                            user_id=current_user.id)
+                flash(f'Announcement sent — {notification.delivered_count} delivered, '
+                      f'{notification.failed_count} failed, {notification.skipped_count} skipped '
+                      f'(not connected to Telegram or opted out).', 'success')
+                return redirect(url_for('admin.announcements'))
+
+    history = Notification.query.filter_by(category='announcement').order_by(
+        Notification.created_at.desc()
+    ).limit(20).all()
+
+    return render_template('super_admin/announcements.html',
+                           shelters=shelters, countries=countries, regions=regions, cities=cities,
+                           preview_count=preview_count, form_values=form_values, history=history)

@@ -10,6 +10,7 @@ from app.models.alert import Alert
 from app.services.alert_service import check_warehouse_stock_alerts
 from app.utils import role_required, active_required
 from app.services.activity_service import log_activity
+from app.services.notification_service import notify_user
 from datetime import datetime
 
 warehouse_bp = Blueprint('warehouse', __name__)
@@ -90,6 +91,14 @@ def create_warehouse():
         db.session.commit()
 
         log_activity('warehouse', f'Warehouse "{warehouse_name}" submitted for approval by {current_user.username}.', user_id=current_user.id)
+        from app.services.notification_service import notify_role
+        from app.services.telegram_api import build_inline_keyboard
+        notify_role('gov_officer', f'New warehouse "{warehouse_name}" submitted by {current_user.username}, awaiting approval.',
+                    title='New warehouse submitted', urgency='info',
+                    reply_markup=build_inline_keyboard([[
+                        ('✅ Approve', f'apr_wh:{warehouse.id}'),
+                        ('❌ Reject', f'rej_wh:{warehouse.id}'),
+                    ]]))
         flash('Warehouse submitted for approval.', 'success')
         return redirect(url_for('warehouse.dashboard'))
 
@@ -224,6 +233,9 @@ def dispatch_request(request_id):
     proc.status_state = 'dispatched'
     db.session.commit()
     log_activity('procurement', f'{current_user.username} dispatched {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} to {proc.shelter.shelter_name}.', user_id=current_user.id)
+    notify_user(proc.requested_by,
+                f'Your request for {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} has been dispatched and is on the way.',
+                title='Goods dispatched', urgency='info')
     flash(f'Dispatched {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} to {proc.shelter.shelter_name}.', 'success')
     return redirect(url_for('warehouse.dashboard'))
 
@@ -305,6 +317,13 @@ def initiate_transfer():
     db.session.add(transfer)
     db.session.commit()
 
+    to_warehouse = Warehouse.query.get(to_warehouse_id)
+    if to_warehouse:
+        for a in to_warehouse.assignments:
+            notify_user(a.user, f'Incoming transfer: {quantity} {stock_item.metric_unit} of {sku_name} '
+                                 f'from {current_user.username}\'s warehouse.',
+                        title='Incoming stock transfer', urgency='info')
+
     flash(f'Transfer of {quantity} {stock_item.metric_unit} of {sku_name} initiated.', 'success')
     return redirect(url_for('warehouse.transfers'))
 
@@ -348,6 +367,10 @@ def confirm_transfer(transfer_id):
     db.session.commit()
 
     log_activity('warehouse', f'{current_user.username} confirmed transfer of {transfer.quantity} {transfer.metric_unit} of {transfer.sku_name}.', user_id=current_user.id)
+    if transfer.initiated_by:
+        notify_user(transfer.initiated_by, f'Your transfer of {transfer.quantity} {transfer.metric_unit} of '
+                                            f'{transfer.sku_name} was received and confirmed by {current_user.username}.',
+                    title='Transfer confirmed', urgency='info')
     flash(f'Transfer confirmed. {transfer.quantity} {transfer.metric_unit} of {transfer.sku_name} added to your warehouse.', 'success')
     return redirect(url_for('warehouse.transfers'))
 

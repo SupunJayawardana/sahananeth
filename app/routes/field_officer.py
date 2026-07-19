@@ -8,6 +8,8 @@ from app.models.shelter_registration import ShelterRegistrationRequest
 from app.services.alert_service import check_shelter_inventory_alerts, create_alert
 from app.utils import role_required, active_required
 from app.services.activity_service import log_activity
+from app.services.notification_service import notify_role, notify_user
+from app.services.telegram_api import build_inline_keyboard
 
 field_bp = Blueprint('field', __name__)
 
@@ -89,6 +91,12 @@ def create_shelter():
         )
 
         log_activity('shelter', f'Shelter "{shelter_name}" submitted for approval by {current_user.username}.', user_id=current_user.id)
+        notify_role('gov_officer', f'New shelter "{shelter_name}" submitted by {current_user.username}, awaiting approval.',
+                    title='New shelter submitted', urgency='info',
+                    reply_markup=build_inline_keyboard([[
+                        ('✅ Approve', f'apr_shelter:{new_shelter.id}'),
+                        ('❌ Reject', f'rej_shelter:{new_shelter.id}'),
+                    ]]))
         flash('Shelter submitted for approval.', 'success')
         return redirect(url_for('field.dashboard'))
 
@@ -210,6 +218,12 @@ def create_procurement():
         )
 
         log_activity('procurement', f'New procurement request from "{shelter.shelter_name}" by {current_user.username}: {quantity_needed} {product.default_unit} of {product.name}.', user_id=current_user.id)
+        notify_role('gov_officer', f'New procurement request from {shelter.shelter_name}: {quantity_needed} {product.default_unit} of {product.name}.',
+                    title='New procurement request', urgency='info',
+                    reply_markup=build_inline_keyboard([[
+                        ('✅ Approve', f'apr_proc:{new_request.id}'),
+                        ('❌ Reject', f'rej_proc:{new_request.id}'),
+                    ]]))
         flash('Procurement request submitted.', 'success')
         return redirect(url_for('field.procurement_list'))
 

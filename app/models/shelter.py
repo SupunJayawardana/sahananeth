@@ -11,6 +11,9 @@ class Shelter(db.Model):
     maximum_capacity = db.Column(db.Integer, nullable=False)
     current_occupancy_count = db.Column(db.Integer, default=0)
     address = db.Column(db.String(255), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    region = db.Column(db.String(100), nullable=True)   # state / province / district
+    city = db.Column(db.String(100), nullable=True)
     status = db.Column(
     db.Enum('pending_approval', 'active', 'inactive',
             name='shelter_status_enum'),

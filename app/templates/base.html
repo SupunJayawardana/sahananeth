@@ -40,6 +40,7 @@
     <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
     <symbol id="icon-clipboard" viewBox="0 0 24 24"><rect x="5.5" y="5" width="13" height="16" rx="1.5"/><rect x="9" y="3" width="6" height="3.5" rx="1"/><path d="M9 11h6M9 15h6"/></symbol>
     <symbol id="icon-warehouse" viewBox="0 0 24 24"><path d="M3 10.5 12 5l9 5.5V20H3z"/><path d="M9 20v-6h6v6"/></symbol>
+    <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M6 10.5a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14.5 6 10.5Z"/><path d="M10 19a2 2 0 0 0 4 0"/></symbol>
   </defs>
 </svg>
 
@@ -62,6 +63,10 @@
                 {{ current_user.role_level.replace('_', ' ').title() }}
             </span>
         </div>
+        <a href="/auth/telegram/connect" class="flex items-center gap-1.5 text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-lg transition">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-alert"/></svg>
+            <span class="text-xs font-medium">{{ 'Telegram connected' if current_user.telegram_linked else 'Connect Telegram' }}</span>
+        </a>
         <a href="/auth/logout" class="flex items-center gap-1.5 text-white/70 hover:text-white border border-white/20 hover:border-white/40 px-3 py-1.5 rounded-lg transition">
             <svg class="icon" style="width:15px;height:15px"><use href="#icon-logout"/></svg>
             <span class="text-xs font-medium">Logout</span>

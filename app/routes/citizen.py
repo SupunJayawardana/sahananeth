@@ -6,6 +6,8 @@ from app.models.shelter import Shelter
 from app.models.beneficiary import Beneficiary
 from app.models.shelter_registration import ShelterRegistrationRequest
 from app.utils import role_required, active_required
+from app.services.notification_service import notify_role
+from app.services.telegram_api import build_inline_keyboard
 
 citizen_bp = Blueprint('citizen', __name__)
 
@@ -133,6 +135,13 @@ def shelter_request():
         )
         db.session.add(request_entry)
         db.session.commit()
+        notify_role('gov_officer', f'New shelter registration request from {request_entry.full_name} '
+                                    f'for {shelter.shelter_name}.',
+                    title='New registration request', urgency='info',
+                    reply_markup=build_inline_keyboard([[
+                        ('✅ Approve', f'apr_reg:{request_entry.id}'),
+                        ('❌ Reject', f'rej_reg:{request_entry.id}'),
+                    ]]))
         flash('Your shelter registration request has been submitted for review.', 'success')
         return redirect(url_for('citizen.dashboard'))
 

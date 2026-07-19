@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Send Announcement{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-10 max-w-4xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <div class="eyebrow">System Control Panel</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Send Announcement</h1>
+            <p class="mt-1 text-slate">Disaster alerts and general announcements, targeted to exactly who needs them.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn-ghost inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+            Dashboard
+        </a>
+    </div>
+
+    <form method="POST" class="ledger-card tone-civic p-6 space-y-5">
+        <div>
+            <label class="block text-sm font-semibold text-ink mb-2">Who should receive this?</label>
+            <div class="flex flex-wrap gap-3">
+                {% for role in ['citizen', 'field_officer', 'warehouse_manager', 'gov_officer'] %}
+                <label class="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-sm">
+                    <input type="checkbox" name="roles" value="{{ role }}"
+                        {% if form_values.get('roles') and role in form_values['roles'] %}checked{% endif %}>
+                    {{ role.replace('_', ' ').title() }}
+                </label>
+                {% endfor %}
+            </div>
+            <p class="mt-1 text-xs text-slate">Leave all unchecked to include every role.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+                <label class="block text-sm font-semibold text-ink mb-1">Country</label>
+                <input type="text" name="country" list="country-list" placeholder="Any country"
+                    value="{{ form_values.get('country') or '' }}"
+                    class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <datalist id="country-list">
+                    {% for c in countries %}<option value="{{ c }}">{% endfor %}
+                </datalist>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink mb-1">State / Province / Region</label>
+                <input type="text" name="region" list="region-list" placeholder="Any region"
+                    value="{{ form_values.get('region') or '' }}"
+                    class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <datalist id="region-list">
+                    {% for r in regions %}<option value="{{ r }}">{% endfor %}
+                </datalist>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink mb-1">City / Town</label>
+                <input type="text" name="city" list="city-list" placeholder="Any city"
+                    value="{{ form_values.get('city') or '' }}"
+                    class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                <datalist id="city-list">
+                    {% for c in cities %}<option value="{{ c }}">{% endfor %}
+                </datalist>
+            </div>
+        </div>
+        <p class="text-xs text-slate -mt-3">Fill in any combination — leave blank to not filter by that field. These are free-text so they work for any country's location system.</p>
+
+        <div>
+            <label class="block text-sm font-semibold text-ink mb-1">Limit to people registered at a specific shelter (optional)</label>
+            <select name="shelter_id" class="w-full sm:w-1/2 rounded-lg border border-line px-3 py-2 text-sm">
+                <option value="">Not limited to one shelter</option>
+                {% for s in shelters %}
+                <option value="{{ s.id }}" {% if form_values.get('shelter_id') == s.id %}selected{% endif %}>{{ s.shelter_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+                <label class="block text-sm font-semibold text-ink mb-1">Title</label>
+                <input type="text" name="title" placeholder="e.g. Flood warning — Colombo district"
+                    value="{{ form_values.get('title') or '' }}"
+                    class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-ink mb-1">Urgency</label>
+                <select name="urgency" class="w-full rounded-lg border border-line px-3 py-2 text-sm">
+                    {% for u in ['info', 'warning', 'critical'] %}
+                    <option value="{{ u }}" {% if form_values.get('urgency', 'info') == u %}selected{% endif %}>{{ u.title() }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-ink mb-1">Message</label>
+            <textarea name="message" rows="4" required placeholder="Write the announcement..."
+                class="w-full rounded-lg border border-line px-3 py-2 text-sm">{{ form_values.get('message') or '' }}</textarea>
+        </div>
+
+        {% if preview_count is not none %}
+        <div class="rounded-lg bg-white border border-civic/30 px-4 py-3 text-sm">
+            This will reach <span class="font-semibold text-civic">{{ preview_count }}</span> {{ 'person' if preview_count == 1 else 'people' }} who have Telegram connected and haven't opted out.
+        </div>
+        {% endif %}
+
+        <div class="flex gap-3">
+            <button type="submit" name="preview" value="1" class="btn-ghost">Preview audience</button>
+            <button type="submit" name="send" value="1" class="btn-primary"
+                onclick="return confirm('Send this announcement now? This cannot be undone.');">
+                Send announcement
+            </button>
+        </div>
+    </form>
+
+    <h2 class="mt-10 mb-3 font-display text-xl font-semibold text-ink">Recent announcements</h2>
+    {% if history %}
+    <div class="space-y-3">
+        {% for n in history %}
+        <div class="ledger-card p-4 {% if n.urgency == 'critical' %}tone-rust{% elif n.urgency == 'warning' %}tone-amber{% else %}tone-civic{% endif %}">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="font-semibold text-ink">{{ n.title or 'Untitled announcement' }}</p>
+                <span class="font-mono text-xs text-slate">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </div>
+            <p class="mt-1 text-sm text-slate">{{ n.message }}</p>
+            <p class="mt-2 text-xs">
+                <span class="text-relief font-medium">{{ n.delivered_count }} delivered</span> ·
+                <span class="text-rust font-medium">{{ n.failed_count }} failed</span> ·
+                <span class="text-slate">{{ n.skipped_count }} skipped</span>
+                {% if n.sent_by %} · sent by {{ n.sent_by.username }}{% endif %}
+            </p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ledger-card tone-relief p-6 text-center text-slate">No announcements sent yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

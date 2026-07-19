@@ -17,21 +17,34 @@ def create_alert(alert_type, message, shelter_id=None, warehouse_id=None):
 def check_shelter_inventory_alerts(shelter_inventory_item):
     """Call this whenever shelter inventory is updated."""
     if shelter_inventory_item.is_low:
+        message = (f'Low stock: {shelter_inventory_item.item_name} at shelter #{shelter_inventory_item.shelter_id} '
+                   f'— only {shelter_inventory_item.quantity} {shelter_inventory_item.metric_unit} remaining.')
         create_alert(
             alert_type='low_shelter_stock',
-            message=f'Low stock: {shelter_inventory_item.item_name} at shelter #{shelter_inventory_item.shelter_id} — only {shelter_inventory_item.quantity} {shelter_inventory_item.metric_unit} remaining.',
+            message=message,
             shelter_id=shelter_inventory_item.shelter_id
         )
+        from app.services.notification_service import notify_user
+        shelter = shelter_inventory_item.shelter
+        if shelter and shelter.created_by:
+            notify_user(shelter.created_by, message, title='Low shelter stock', urgency='warning')
 
 
 def check_warehouse_stock_alerts(inventory_stock_item):
     """Call this whenever warehouse inventory is updated."""
     if inventory_stock_item.quantity_available <= 10:
+        message = (f'Low stock: {inventory_stock_item.sku_name} at warehouse #{inventory_stock_item.warehouse_id} '
+                   f'— only {inventory_stock_item.quantity_available} {inventory_stock_item.metric_unit} remaining.')
         create_alert(
             alert_type='low_warehouse_stock',
-            message=f'Low stock: {inventory_stock_item.sku_name} at warehouse #{inventory_stock_item.warehouse_id} — only {inventory_stock_item.quantity_available} {inventory_stock_item.metric_unit} remaining.',
+            message=message,
             warehouse_id=inventory_stock_item.warehouse_id
         )
+        from app.services.notification_service import notify_user
+        warehouse = inventory_stock_item.warehouse
+        if warehouse:
+            for a in warehouse.assignments:
+                notify_user(a.user, message, title='Low warehouse stock', urgency='warning')
 
 
 def get_unread_alerts():

@@ -7,6 +7,7 @@ from app.models.beneficiary import Beneficiary
 from app.models.shelter_registration import ShelterRegistrationRequest
 from app.utils import role_required, active_required
 from app.services.activity_service import log_activity
+from app.services.notification_service import notify_user, notify_role
 
 gov_bp = Blueprint('gov', __name__)
 
@@ -40,6 +41,8 @@ def approve_field_officer(user_id):
     user.status = 'active'
     db.session.commit()
     log_activity('user', f'Field Officer {user.username} approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, 'Your Field Officer account has been approved. You can now log in.',
+                title='Account approved', urgency='info')
     flash(f'{user.username} has been approved as Field Officer.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -56,6 +59,8 @@ def reject_field_officer(user_id):
     user.status = 'rejected'
     db.session.commit()
     log_activity('user', f'Field Officer {user.username} rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, 'Your Field Officer account application has been rejected.',
+                title='Account rejected', urgency='warning')
     flash(f'{user.username} has been rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))
 
@@ -70,6 +75,8 @@ def approve_shelter(shelter_id):
     shelter.approved_by_id = current_user.id
     db.session.commit()
     log_activity('shelter', f'Shelter "{shelter.shelter_name}" approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(shelter.created_by, f'Your shelter "{shelter.shelter_name}" has been approved and is now active.',
+                title='Shelter approved', urgency='info')
     flash(f'Shelter "{shelter.shelter_name}" has been approved.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -83,6 +90,8 @@ def reject_shelter(shelter_id):
     shelter.status = 'inactive'
     db.session.commit()
     log_activity('shelter', f'Shelter "{shelter.shelter_name}" rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(shelter.created_by, f'Your shelter "{shelter.shelter_name}" was not approved.',
+                title='Shelter rejected', urgency='warning')
     flash(f'Shelter "{shelter.shelter_name}" has been rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))
 
@@ -133,6 +142,14 @@ def approve_procurement(request_id):
     proc.fulfilled_warehouse_id = int(warehouse_id)
     db.session.commit()
     log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(proc.requested_by,
+                f'Your request for {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} has been approved.',
+                title='Procurement approved', urgency='info')
+    for a in proc.fulfilled_warehouse.assignments:
+        notify_user(a.user,
+                    f'New dispatch task: {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} '
+                    f'for {proc.shelter.shelter_name}.',
+                    title='New dispatch task', urgency='warning')
     flash('Procurement request approved and warehouse assigned.', 'success')
     return redirect(url_for('gov.procurement_requests'))
 
@@ -147,6 +164,9 @@ def reject_procurement(request_id):
     proc.status_state = 'rejected'
     db.session.commit()
     log_activity('procurement', f'Procurement request #{proc.id} ({proc.requested_sku}) rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(proc.requested_by,
+                f'Your request for {proc.quantity_needed} {proc.metric_unit} of {proc.requested_sku} was rejected.',
+                title='Procurement rejected', urgency='warning')
     flash('Procurement request rejected.', 'danger')
     return redirect(url_for('gov.procurement_requests'))
 
@@ -202,6 +222,8 @@ def approve_warehouse_manager(user_id):
 
     db.session.commit()
     log_activity('user', f'Warehouse Manager {user.username} approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, 'Your Warehouse Manager account has been approved. You can now log in.',
+                title='Account approved', urgency='info')
     flash(f'{user.username} approved and assigned to warehouses.', 'success')
     return redirect(url_for('gov.warehouse_managers'))
 
@@ -215,6 +237,8 @@ def reject_warehouse_manager(user_id):
     user.status = 'rejected'
     db.session.commit()
     log_activity('user', f'Warehouse Manager {user.username} rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(user, 'Your Warehouse Manager account application has been rejected.',
+                title='Account rejected', urgency='warning')
     flash(f'{user.username} has been rejected.', 'danger')
     return redirect(url_for('gov.warehouse_managers'))
 
@@ -279,6 +303,8 @@ def approve_warehouse(warehouse_id):
     warehouse.approved_by_id = current_user.id
     db.session.commit()
     log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" approved by {current_user.username}.', user_id=current_user.id)
+    notify_user(warehouse.created_by, f'Your warehouse "{warehouse.warehouse_name}" has been approved and is now active.',
+                title='Warehouse approved', urgency='info')
     flash(f'Warehouse "{warehouse.warehouse_name}" approved.', 'success')
     return redirect(url_for('gov.warehouses'))
 
@@ -293,6 +319,8 @@ def reject_warehouse(warehouse_id):
     warehouse.status = 'inactive'
     db.session.commit()
     log_activity('warehouse', f'Warehouse "{warehouse.warehouse_name}" rejected by {current_user.username}.', user_id=current_user.id)
+    notify_user(warehouse.created_by, f'Your warehouse "{warehouse.warehouse_name}" was not approved.',
+                title='Warehouse rejected', urgency='warning')
     flash(f'Warehouse "{warehouse.warehouse_name}" rejected.', 'danger')
     return redirect(url_for('gov.warehouses'))
 
@@ -355,6 +383,9 @@ def approve_registration(request_id):
 
     db.session.commit()
     log_activity('shelter', f'Citizen registration for "{registration.full_name}" approved by {current_user.username}.', user_id=current_user.id)
+    if registration.citizen:
+        notify_user(registration.citizen, f'Your shelter registration at "{registration.shelter.shelter_name}" has been approved.',
+                    title='Registration approved', urgency='info')
     flash('Registration request approved and beneficiary profile verified.', 'success')
     return redirect(url_for('gov.dashboard'))
 
@@ -370,5 +401,8 @@ def reject_registration(request_id):
     registration.reviewed_at = db.func.now()
     db.session.commit()
     log_activity('shelter', f'Citizen registration for "{registration.full_name}" rejected by {current_user.username}.', user_id=current_user.id)
+    if registration.citizen:
+        notify_user(registration.citizen, f'Your shelter registration at "{registration.shelter.shelter_name}" was not approved.',
+                    title='Registration rejected', urgency='warning')
     flash('Registration request rejected.', 'danger')
     return redirect(url_for('gov.dashboard'))

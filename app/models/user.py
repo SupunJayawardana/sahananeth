@@ -24,6 +24,17 @@ class User(UserMixin, db.Model):
     assigned_node_id = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # --- Telegram bot integration ---
+    telegram_chat_id = db.Column(db.String(64), unique=True, nullable=True)
+    telegram_linked_at = db.Column(db.DateTime, nullable=True)
+    notify_opt_in = db.Column(db.Boolean, default=True, nullable=False)
+
+    # --- Location (free-text so the system isn't tied to one country's
+    #     administrative divisions — works for any country/region/city) ---
+    country = db.Column(db.String(100), nullable=True)
+    region = db.Column(db.String(100), nullable=True)   # state / province / district
+    city = db.Column(db.String(100), nullable=True)
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -37,6 +48,10 @@ class User(UserMixin, db.Model):
     @property
     def is_pending(self):
         return self.status == 'pending'
+
+    @property
+    def telegram_linked(self):
+        return self.telegram_chat_id is not None
 
     def __repr__(self):
         return f'<User {self.username} | {self.role_level} | {self.status}>'

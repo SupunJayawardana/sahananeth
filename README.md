@@ -166,4 +166,41 @@ Follow this exact sequence to initialize the development container and run the w
 
 ---
 
+## 6. Telegram Bot Setup (Local & Render)
+
+SAHANANETH sends real-time alerts (approvals, dispatch tasks, low stock, disaster announcements) via a companion Telegram bot, and also lets citizens self-register and request aid directly through it.
+
+### 6.1 Create the bot (one-time)
+1. Open Telegram, message **@BotFather**, send `/newbot`, follow the prompts.
+2. Copy the token it gives you.
+3. Copy `.env.example` to `.env` and fill in:
+   ```
+   TELEGRAM_BOT_TOKEN=<token from BotFather>
+   TELEGRAM_BOT_USERNAME=<your bot's username, no @>
+   TELEGRAM_WEBHOOK_SECRET=<any long random string>
+   ```
+
+### 6.2 Running locally — polling mode
+No public URL needed. In a second terminal, alongside `python run.py`:
+
+```bash
+python run_bot_polling.py
+```
+
+This continuously checks Telegram for new messages and processes them against your local database. Stop it with `Ctrl+C`; the web app keeps running independently.
+
+### 6.3 Running on Render — webhook mode
+Render gives your app a public HTTPS URL, so instead of polling, Telegram pushes updates directly to it — no second process needed.
+
+1. Set the same three environment variables in your Render service's **Environment** tab.
+2. After each deploy (or once, if the URL doesn't change), run once from your local machine to point Telegram at your Render URL:
+   ```bash
+   python scripts/set_webhook.py https://sahananeth1.onrender.com
+   ```
+3. That's it — the existing web service handles incoming Telegram updates at `/telegram/webhook/<secret>`; you do not need to run `run_bot_polling.py` on Render.
+
+> ⚠️ Don't run polling mode and webhook mode against the same bot token at the same time — Telegram only delivers updates one way at a time. `run_bot_polling.py` automatically clears any existing webhook on startup so local development doesn't get shadowed by a stale Render webhook.
+
+---
+
 *SAHANANETH Operations Manual — Confidential & Operational Framework Documentation.*
