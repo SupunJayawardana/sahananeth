@@ -97,7 +97,7 @@ def reject_shelter(shelter_id):
 
 @gov_bp.route('/procurement')
 @login_required
-@role_required('gov_officer')
+@role_required('gov_officer', 'super_admin')
 @active_required
 def procurement_requests():
     from app.models.procurement import ProcurementRequest
@@ -172,7 +172,7 @@ def reject_procurement(request_id):
 
 @gov_bp.route('/warehouse-managers')
 @login_required
-@role_required('gov_officer')
+@role_required('gov_officer', 'super_admin')
 @active_required
 def warehouse_managers():
     from app.models.warehouse_assignment import WarehouseAssignment
@@ -246,7 +246,7 @@ def reject_warehouse_manager(user_id):
 
 @gov_bp.route('/warehouses')
 @login_required
-@role_required('gov_officer')
+@role_required('gov_officer', 'super_admin')
 @active_required
 def warehouses():
     from app.models.warehouse import Warehouse

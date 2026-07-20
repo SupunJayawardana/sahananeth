@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Register Citizen to Shelter{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="mx-auto mt-10 max-w-2xl px-4 pb-16">
     <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
@@ -54,104 +59,10 @@
                 <label class="mb-1.5 block text-sm font-medium text-ink">Notes</label>
                 <textarea name="notes" rows="2" class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"></textarea>
             </div>
-            <!-- Location Capture -->
-<div>
-    <label class="mb-1.5 block text-sm font-medium text-ink">
-        Citizen Location
-        <span class="text-xs text-slate font-normal ml-1">(optional — for aid response mapping)</span>
-    </label>
-    <button type="button" onclick="captureLocation()"
-        class="btn-ghost text-sm flex items-center gap-2 mb-2">
-        📍 Capture Current Location
-    </button>
-    <p id="loc-status" class="text-xs text-slate mb-2"></p>
-    <div class="grid grid-cols-2 gap-3">
-        <div>
-            <label class="block text-xs text-slate mb-1">Latitude</label>
-            <input type="text" name="latitude" id="lat-input"
-                class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"
-                placeholder="e.g. 7.2906">
-        </div>
-        <div>
-            <label class="block text-xs text-slate mb-1">Longitude</label>
-            <input type="text" name="longitude" id="lng-input"
-                class="w-full rounded-lg border border-line bg-paper px-4 py-2.5 text-sm text-ink focus:border-civic focus:outline-none focus:ring-2 focus:ring-civic/40"
-                placeholder="e.g. 80.6337">
-        </div>
-    </div>
-    <!-- Mini map preview -->
-    <div id="loc-map-preview" class="hidden mt-3 rounded-xl border border-line overflow-hidden" style="height:180px;"></div>
-</div>
-
-<script>
-var previewMap = null;
-var previewMarker = null;
-
-function captureLocation() {
-    var status = document.getElementById('loc-status');
-    if (!navigator.geolocation) {
-        status.textContent = 'Geolocation not supported by this browser.';
-        return;
-    }
-    status.textContent = '⏳ Detecting location...';
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            var lat = pos.coords.latitude.toFixed(6);
-            var lng = pos.coords.longitude.toFixed(6);
-            document.getElementById('lat-input').value = lat;
-            document.getElementById('lng-input').value = lng;
-            status.textContent = '✅ Location captured — ' + lat + ', ' + lng;
-            status.className = 'text-xs text-green-600 mb-2';
-            showPreviewMap(parseFloat(lat), parseFloat(lng));
-        },
-        function(err) {
-            status.textContent = '❌ Could not detect — enter manually above.';
-            status.className = 'text-xs text-red-500 mb-2';
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-    );
-}
-
-function showPreviewMap(lat, lng) {
-    var container = document.getElementById('loc-map-preview');
-    container.classList.remove('hidden');
-    if (!previewMap) {
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-        var script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = function() {
-            previewMap = L.map('loc-map-preview').setView([lat, lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(previewMap);
-            previewMarker = L.marker([lat, lng]).addTo(previewMap)
-                .bindPopup('📍 Citizen location').openPopup();
-            previewMap.on('click', function(e) {
-                var newLat = e.latlng.lat.toFixed(6);
-                var newLng = e.latlng.lng.toFixed(6);
-                document.getElementById('lat-input').value = newLat;
-                document.getElementById('lng-input').value = newLng;
-                previewMarker.setLatLng([newLat, newLng]);
-                document.getElementById('loc-status').textContent = '📌 Location adjusted to ' + newLat + ', ' + newLng;
-            });
-        };
-        document.head.appendChild(script);
-    } else {
-        previewMap.setView([lat, lng], 15);
-        previewMarker.setLatLng([lat, lng]);
-    }
-}
-
-// Also allow manual lat/lng input to update map
-['lat-input', 'lng-input'].forEach(function(id) {
-    document.getElementById(id).addEventListener('change', function() {
-        var lat = parseFloat(document.getElementById('lat-input').value);
-        var lng = parseFloat(document.getElementById('lng-input').value);
-        if (!isNaN(lat) && !isNaN(lng)) showPreviewMap(lat, lng);
-    });
-});
-</script>
+            <div>
+                <label class="mb-1.5 block text-sm font-medium text-ink">Current location <span class="font-normal text-slate">(optional, but helps with response planning)</span></label>
+                <div data-location-picker data-mode="form" data-lat-input="latitude" data-lng-input="longitude"></div>
+            </div>
             <button type="submit" class="btn-primary w-full">Submit Citizen Registration</button>
         </form>
     </div>
@@ -160,4 +71,5 @@ function showPreviewMap(lat, lng) {
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/entity-picker.js') }}"></script>
+<script src="{{ url_for('static', filename='js/location-picker.js') }}"></script>
 {% endblock %}

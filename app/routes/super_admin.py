@@ -573,120 +573,150 @@ def beneficiaries():
     return render_template('super_admin/beneficiaries.html', results=results, q=q, verified=verified)
 
 
+# ─── Self-service Report Builder ─────────────────────────────────────────
+# Build-your-own reports rather than a fixed set: pick a data source, add
+# filters, optionally a location-radius filter, optionally group by a
+# field, save it, re-run it any time. Adding a genuinely new report TYPE
+# (not just a new filter combination) means adding one entry to
+# report_service.SOURCES — no new route or template needed for that.
 
- # ─── Super Admin Override Routes ─────────────────────────────────────────────
-# These allow Super Admin to access pages normally restricted to other roles
+def _report_field_meta_json(source):
+    import json
+    return json.dumps({
+        key: {'label': spec['label'], 'type': spec['type'], 'choices': spec.get('choices')}
+        for key, spec in source['fields'].items()
+    })
 
-@admin_bp.route('/warehouse/transfers')
+
+@admin_bp.route('/reports')
 @login_required
-@role_required('super_admin')
-def warehouse_transfers():
-    from app.models.stock_transfer import StockTransfer
-    from app.models.warehouse import Warehouse
-    warehouses = Warehouse.query.filter_by(status='active').all()
-    all_transfers = StockTransfer.query.order_by(
-        StockTransfer.created_at.desc()
-    ).all()
-    return render_template('warehouse_manager/transfers.html',
-                           outgoing=all_transfers,
-                           incoming=all_transfers,
-                           my_warehouses=warehouses,
-                           all_warehouses=warehouses,
-                           is_admin_view=True)
+@role_required('super_admin', 'gov_officer')
+def reports_list():
+    from app.models.saved_report import SavedReport
+    reports = SavedReport.query.order_by(SavedReport.updated_at.desc()).all()
+    return render_template('super_admin/reports_list.html', reports=reports)
 
 
-@admin_bp.route('/warehouse/catalog')
+@admin_bp.route('/reports/new', methods=['GET', 'POST'])
 @login_required
-@role_required('super_admin')
-def warehouse_catalog():
-    from app.models.product import Product
-    products = Product.query.order_by(
-        Product.category, Product.name
-    ).all()
-    return render_template('warehouse_manager/catalog.html',
-                           products=products)
+@role_required('super_admin', 'gov_officer')
+def reports_new():
+    return _report_builder_form()
 
 
-@admin_bp.route('/warehouse/catalog/add', methods=['POST'])
+@admin_bp.route('/reports/<int:report_id>/edit', methods=['GET', 'POST'])
 @login_required
-@role_required('super_admin')
-def add_product():
-    from app.models.product import Product
-    name = request.form.get('name')
-    category = request.form.get('category')
-    unit = request.form.get('default_unit')
-    description = request.form.get('description')
-    if not Product.query.filter_by(name=name).first():
-        product = Product(
-            name=name, category=category,
-            default_unit=unit, description=description,
-            is_active=True, created_by_id=current_user.id
-        )
-        db.session.add(product)
-        db.session.commit()
-        flash(f'{name} added to catalog.', 'success')
-    else:
-        flash('Product already exists.', 'warning')
-    return redirect(url_for('admin.warehouse_catalog'))
+@role_required('super_admin', 'gov_officer')
+def reports_edit(report_id):
+    from app.models.saved_report import SavedReport
+    saved = SavedReport.query.get_or_404(report_id)
+    return _report_builder_form(saved)
 
 
-@admin_bp.route('/gov-view/procurement')
+def _report_builder_form(saved=None):
+    from app.services import report_service
+    from app.models.saved_report import SavedReport
+    from app.models.shelter import Shelter
+
+    sources = report_service.get_sources()
+    source_key = request.values.get('source') or (saved.source_key if saved else 'citizens')
+    if source_key not in sources:
+        source_key = 'citizens'
+    source = sources[source_key]
+    shelters = Shelter.query.filter_by(status='active').order_by(Shelter.shelter_name).all()
+
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        source_key = request.form.get('source_key', source_key)
+
+        filters = []
+        fields = request.form.getlist('filter_field[]')
+        operators = request.form.getlist('filter_operator[]')
+        values = request.form.getlist('filter_value[]')
+        for field, operator, value in zip(fields, operators, values):
+            if field:
+                filters.append({'field': field, 'operator': operator, 'value': value})
+
+        location_filter = None
+        if request.form.get('use_location_filter'):
+            shelter_id = request.form.get('loc_shelter_id', '').strip()
+            radius_km = request.form.get('loc_radius_km', '').strip()
+            lat = request.form.get('loc_lat', '').strip()
+            lng = request.form.get('loc_lng', '').strip()
+            try:
+                radius = float(radius_km)
+                if shelter_id:
+                    shelter = Shelter.query.get(int(shelter_id))
+                    if shelter and shelter.latitude is not None:
+                        location_filter = {'lat': shelter.latitude, 'lng': shelter.longitude, 'radius_km': radius}
+                elif lat and lng:
+                    location_filter = {'lat': float(lat), 'lng': float(lng), 'radius_km': radius}
+            except (TypeError, ValueError):
+                location_filter = None
+
+        group_by = request.form.get('group_by', '').strip() or None
+        sort_by = request.form.get('sort_by', '').strip() or None
+        sort_dir = request.form.get('sort_dir', 'asc')
+
+        if not name:
+            flash('Give this report a name.', 'danger')
+        else:
+            target = saved or SavedReport(created_by_id=current_user.id)
+            target.name = name
+            target.description = description
+            target.source_key = source_key
+            target.set_filters(filters)
+            target.set_location_filter(location_filter)
+            target.group_by = group_by
+            target.sort_by = sort_by
+            target.sort_dir = sort_dir
+            if not saved:
+                db.session.add(target)
+            db.session.commit()
+            log_activity('user', f'{current_user.username} {"updated" if saved else "created"} report "{name}".',
+                        user_id=current_user.id)
+            flash(f'Report "{name}" saved.', 'success')
+            return redirect(url_for('admin.reports_view', report_id=target.id))
+
+    existing_filters = saved.get_filters() if saved else []
+    existing_loc = saved.get_location_filter() if saved else None
+
+    return render_template('super_admin/report_builder.html',
+                           sources=sources, source_key=source_key, source=source,
+                           field_meta_json=_report_field_meta_json(source),
+                           shelters=shelters, saved=saved,
+                           existing_filters=existing_filters, existing_loc=existing_loc)
+
+
+@admin_bp.route('/reports/<int:report_id>')
 @login_required
-@role_required('super_admin')
-def gov_procurement_view():
-    from app.models.procurement import ProcurementRequest
-    from app.models.warehouse import Warehouse
-    from app.services.geo_services import find_matching_warehouses
-    requests = ProcurementRequest.query.order_by(
-        ProcurementRequest.created_at.desc()
-    ).all()
-    gis_matches = {}
-    for req in requests:
-        if req.status_state == 'pending' and req.shelter:
-            matches = find_matching_warehouses(
-                req.shelter, req.requested_sku, req.quantity_needed
-            )
-            gis_matches[req.id] = matches
-    warehouses = Warehouse.query.filter_by(status='active').all()
-    return render_template('gov_officer/procurement.html',
-                           requests=requests,
-                           warehouses=warehouses,
-                           gis_matches=gis_matches)
+@role_required('super_admin', 'gov_officer')
+def reports_view(report_id):
+    from app.services import report_service
+    from app.models.saved_report import SavedReport
+
+    saved = SavedReport.query.get_or_404(report_id)
+    result = report_service.run_report(
+        saved.source_key,
+        filters=saved.get_filters(),
+        location_filter=saved.get_location_filter(),
+        group_by=saved.group_by,
+        sort_by=saved.sort_by,
+        sort_dir=saved.sort_dir,
+    )
+    return render_template('super_admin/report_view.html', saved=saved, result=result)
 
 
-@admin_bp.route('/gov-view/warehouses')
+@admin_bp.route('/reports/<int:report_id>/delete', methods=['POST'])
 @login_required
-@role_required('super_admin')
-def gov_warehouses_view():
-    from app.models.warehouse import Warehouse
-    from app.models.user import User
-    active_warehouses = Warehouse.query.filter_by(status='active').all()
-    pending_warehouses = Warehouse.query.filter_by(status='pending_approval').all()
-    warehouse_managers = User.query.filter_by(
-        role_level='warehouse_manager', status='active'
-    ).all()
-    return render_template('gov_officer/warehouses.html',
-                           active_warehouses=active_warehouses,
-                           pending_warehouses=pending_warehouses,
-                           warehouse_managers=warehouse_managers,
-                           all_warehouses=active_warehouses,
-                           base_url='admin')
-
-
-@admin_bp.route('/gov-view/warehouse-managers')
-@login_required
-@role_required('super_admin')
-def gov_warehouse_managers_view():
-    from app.models.warehouse import Warehouse
-    from app.models.user import User
-    pending_wm = User.query.filter_by(
-        role_level='warehouse_manager', status='pending'
-    ).all()
-    active_wm = User.query.filter_by(
-        role_level='warehouse_manager', status='active'
-    ).all()
-    warehouses = Warehouse.query.filter_by(status='active').all()
-    return render_template('gov_officer/warehouse_managers.html',
-                           pending_wm=pending_wm,
-                           active_wm=active_wm,
-                           warehouses=warehouses)   
+@role_required('super_admin', 'gov_officer')
+def reports_delete(report_id):
+    from app.models.saved_report import SavedReport
+    saved = SavedReport.query.get_or_404(report_id)
+    name = saved.name
+    db.session.delete(saved)
+    db.session.commit()
+    log_activity('user', f'{current_user.username} deleted report "{name}".', user_id=current_user.id)
+    flash(f'Report "{name}" deleted.', 'success')
+    return redirect(url_for('admin.reports_list'))

@@ -244,7 +244,7 @@ def dispatch_request(request_id):
 
 @warehouse_bp.route('/transfers')
 @login_required
-@role_required('warehouse_manager')
+@role_required('warehouse_manager', 'super_admin')
 @active_required
 def transfers():
     my_ids = get_my_warehouse_ids()

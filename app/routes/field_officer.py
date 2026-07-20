@@ -348,6 +348,14 @@ def register_citizen_to_shelter():
         phone_number = request.form.get('phone_number')
         address = request.form.get('address')
         notes = request.form.get('notes')
+        lat_raw = request.form.get('latitude', '').strip()
+        lng_raw = request.form.get('longitude', '').strip()
+        location_fields = {}
+        if lat_raw and lng_raw:
+            try:
+                location_fields = {'latitude': float(lat_raw), 'longitude': float(lng_raw)}
+            except ValueError:
+                pass
 
         # Always create/attach a real User account here — previously this
         # only created a Beneficiary with no login at all, so a citizen
@@ -358,7 +366,15 @@ def register_citizen_to_shelter():
         user, profile, created_user = citizen_service.register_or_link_citizen(
             identification_number=identification_number,
             full_name=full_name,
+            extra_user_fields=location_fields,
         )
+        # register_or_link_citizen only applies extra_user_fields when it
+        # creates the User row — if this ID already had an account, confirm
+        # the location on it here too, since "confirm their location" should
+        # apply regardless of whether the account is brand new.
+        if location_fields:
+            user.latitude = location_fields['latitude']
+            user.longitude = location_fields['longitude']
         profile.full_name = full_name
         generated_password = getattr(user, '_generated_password', None)
         db.session.flush()

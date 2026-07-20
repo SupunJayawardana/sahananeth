@@ -57,3 +57,43 @@ def lookup_users():
         {'id': u.id, 'label': u.full_name or u.username, 'sublabel': f'{u.role_level} · {u.status}'}
         for u in users
     ]})
+
+
+@api_bp.route('/citizens/<int:user_id>/location', methods=['POST'])
+@login_required
+def set_citizen_location(user_id):
+    """
+    Lets staff confirm a citizen's location on their behalf — used by the
+    location-picker widget on aid-request cards. Previously only the
+    citizen's own browser "share my location" button could set this,
+    which meant it stayed blank for anyone triaging a request from
+    someone who never used that button (or a walk-in with no bot/website
+    access at all).
+    """
+    if current_user.role_level not in STAFF_ROLES:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    from app.models.user import User
+    from app.extensions import db
+    from app.services.activity_service import log_activity
+
+    target = User.query.get_or_404(user_id)
+    if target.role_level != 'citizen':
+        return jsonify({'error': 'Location confirmation is only for citizen accounts'}), 400
+
+    data = request.get_json(silent=True) or {}
+    try:
+        lat = float(data.get('lat'))
+        lng = float(data.get('lng'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'lat and lng are required numbers'}), 400
+    if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+        return jsonify({'error': 'lat/lng out of range'}), 400
+
+    target.latitude = lat
+    target.longitude = lng
+    db.session.commit()
+    log_activity('user', f'{current_user.username} confirmed location for {target.full_name or target.username}.',
+                 user_id=current_user.id)
+
+    return jsonify({'ok': True, 'lat': lat, 'lng': lng})

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-10 max-w-4xl px-4 pb-16">
+    <div class="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+            <div class="eyebrow">System Control Panel</div>
+            <h1 class="mt-1 font-display text-3xl font-semibold text-ink">Reports</h1>
+            <p class="mt-1 text-slate">Build your own report — pick a data source, filter it, save it, and re-run it any time against live data.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/auth/dashboard" class="btn-ghost inline-flex items-center gap-2">
+                <svg class="icon" style="width:15px;height:15px"><use href="#icon-arrow-right"/></svg>
+                Dashboard
+            </a>
+            <a href="/admin/reports/new" class="btn-primary inline-flex items-center gap-2">
+                <svg class="icon" style="width:15px;height:15px"><use href="#icon-plus"/></svg>
+                New Report
+            </a>
+        </div>
+    </div>
+
+    {% if reports %}
+    <div class="space-y-3">
+        {% for r in reports %}
+        <div class="ledger-card tone-civic p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <a href="/admin/reports/{{ r.id }}" class="font-semibold text-ink hover:text-civic">{{ r.name }}</a>
+                {% if r.description %}<p class="text-sm text-slate mt-0.5">{{ r.description }}</p>{% endif %}
+                <p class="mt-1 text-xs text-slate font-mono">
+                    Source: {{ r.source_key.replace('_', ' ').title() }}
+                    {% if r.created_by %} · built by {{ r.created_by.username }}{% endif %}
+                    · updated {{ r.updated_at.strftime('%Y-%m-%d %H:%M') if r.updated_at else '—' }}
+                </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <a href="/admin/reports/{{ r.id }}" class="btn-secondary text-xs px-3 py-1.5">Run</a>
+                <a href="/admin/reports/{{ r.id }}/edit" class="btn-ghost text-xs px-3 py-1.5">Edit</a>
+                <form method="POST" action="/admin/reports/{{ r.id }}/delete"
+                    onsubmit="return confirm('Delete report \'{{ r.name }}\'? This cannot be undone.');">
+                    <button type="submit" class="btn-danger text-xs px-3 py-1.5">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="ledger-card tone-relief p-8 text-center text-slate">
+        <p class="mb-3">No reports yet.</p>
+        <a href="/admin/reports/new" class="btn-primary inline-flex items-center gap-2">
+            <svg class="icon" style="width:15px;height:15px"><use href="#icon-plus"/></svg>
+            Build your first report
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
