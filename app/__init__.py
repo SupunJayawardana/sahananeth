@@ -29,6 +29,7 @@ def create_app(config_name='default'):
     from app.routes.warehouse_manager import warehouse_bp
     from app.routes.bot import bot_bp
     from app.routes.api import api_bp
+    from app.routes.location import location_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(citizen_bp, url_prefix='/citizen')
@@ -38,5 +39,6 @@ def create_app(config_name='default'):
     app.register_blueprint(warehouse_bp, url_prefix='/warehouse')
     app.register_blueprint(bot_bp, url_prefix='/telegram')
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(location_bp, url_prefix='/location')
 
     return app

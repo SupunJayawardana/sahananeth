@@ -571,3 +571,122 @@ def beneficiaries():
     verified = request.args.get('verified', '')  # '', 'yes', 'no'
     results = search_and_filter(q=q, verified=verified)
     return render_template('super_admin/beneficiaries.html', results=results, q=q, verified=verified)
+
+
+
+ # ─── Super Admin Override Routes ─────────────────────────────────────────────
+# These allow Super Admin to access pages normally restricted to other roles
+
+@admin_bp.route('/warehouse/transfers')
+@login_required
+@role_required('super_admin')
+def warehouse_transfers():
+    from app.models.stock_transfer import StockTransfer
+    from app.models.warehouse import Warehouse
+    warehouses = Warehouse.query.filter_by(status='active').all()
+    all_transfers = StockTransfer.query.order_by(
+        StockTransfer.created_at.desc()
+    ).all()
+    return render_template('warehouse_manager/transfers.html',
+                           outgoing=all_transfers,
+                           incoming=all_transfers,
+                           my_warehouses=warehouses,
+                           all_warehouses=warehouses,
+                           is_admin_view=True)
+
+
+@admin_bp.route('/warehouse/catalog')
+@login_required
+@role_required('super_admin')
+def warehouse_catalog():
+    from app.models.product import Product
+    products = Product.query.order_by(
+        Product.category, Product.name
+    ).all()
+    return render_template('warehouse_manager/catalog.html',
+                           products=products)
+
+
+@admin_bp.route('/warehouse/catalog/add', methods=['POST'])
+@login_required
+@role_required('super_admin')
+def add_product():
+    from app.models.product import Product
+    name = request.form.get('name')
+    category = request.form.get('category')
+    unit = request.form.get('default_unit')
+    description = request.form.get('description')
+    if not Product.query.filter_by(name=name).first():
+        product = Product(
+            name=name, category=category,
+            default_unit=unit, description=description,
+            is_active=True, created_by_id=current_user.id
+        )
+        db.session.add(product)
+        db.session.commit()
+        flash(f'{name} added to catalog.', 'success')
+    else:
+        flash('Product already exists.', 'warning')
+    return redirect(url_for('admin.warehouse_catalog'))
+
+
+@admin_bp.route('/gov-view/procurement')
+@login_required
+@role_required('super_admin')
+def gov_procurement_view():
+    from app.models.procurement import ProcurementRequest
+    from app.models.warehouse import Warehouse
+    from app.services.geo_services import find_matching_warehouses
+    requests = ProcurementRequest.query.order_by(
+        ProcurementRequest.created_at.desc()
+    ).all()
+    gis_matches = {}
+    for req in requests:
+        if req.status_state == 'pending' and req.shelter:
+            matches = find_matching_warehouses(
+                req.shelter, req.requested_sku, req.quantity_needed
+            )
+            gis_matches[req.id] = matches
+    warehouses = Warehouse.query.filter_by(status='active').all()
+    return render_template('gov_officer/procurement.html',
+                           requests=requests,
+                           warehouses=warehouses,
+                           gis_matches=gis_matches)
+
+
+@admin_bp.route('/gov-view/warehouses')
+@login_required
+@role_required('super_admin')
+def gov_warehouses_view():
+    from app.models.warehouse import Warehouse
+    from app.models.user import User
+    active_warehouses = Warehouse.query.filter_by(status='active').all()
+    pending_warehouses = Warehouse.query.filter_by(status='pending_approval').all()
+    warehouse_managers = User.query.filter_by(
+        role_level='warehouse_manager', status='active'
+    ).all()
+    return render_template('gov_officer/warehouses.html',
+                           active_warehouses=active_warehouses,
+                           pending_warehouses=pending_warehouses,
+                           warehouse_managers=warehouse_managers,
+                           all_warehouses=active_warehouses,
+                           base_url='admin')
+
+
+@admin_bp.route('/gov-view/warehouse-managers')
+@login_required
+@role_required('super_admin')
+def gov_warehouse_managers_view():
+    from app.models.warehouse import Warehouse
+    from app.models.user import User
+    pending_wm = User.query.filter_by(
+        role_level='warehouse_manager', status='pending'
+    ).all()
+    active_wm = User.query.filter_by(
+        role_level='warehouse_manager', status='active'
+    ).all()
+    warehouses = Warehouse.query.filter_by(status='active').all()
+    return render_template('gov_officer/warehouse_managers.html',
+                           pending_wm=pending_wm,
+                           active_wm=active_wm,
+                           warehouses=warehouses)   

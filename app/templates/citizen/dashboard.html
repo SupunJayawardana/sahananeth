@@ -95,4 +95,24 @@ document.getElementById('share-location-btn').addEventListener('click', function
     });
 });
 </script>
+<script>
+// Auto-capture citizen location on dashboard load (with permission)
+(function() {
+    if (!navigator.geolocation) return;
+    // Only ask once per session
+    if (sessionStorage.getItem('loc_sent')) return;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        fetch('/location/update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude
+            })
+        }).then(function(r) {
+            if (r.ok) sessionStorage.setItem('loc_sent', '1');
+        });
+    }, function() {}, { enableHighAccuracy: false, timeout: 8000 });
+})();
+</script>
 {% endblock %}

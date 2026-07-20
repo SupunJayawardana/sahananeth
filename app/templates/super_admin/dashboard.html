@@ -1,160 +1,252 @@
-{% extends "base.html" %}
-{% block title %}Super Admin Dashboard{% endblock %}
-
+{% extends "base.html" %} {% block title %}Super Admin Dashboard{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto mt-10 px-4 pb-16">
-    <div class="eyebrow">System Control Panel</div>
-    <h1 class="font-display text-3xl font-semibold text-ink mt-1">Super Admin Dashboard</h1>
-    <p class="text-slate mt-1 mb-8">SAHANANETH — full system oversight.</p>
+  <div class="eyebrow">System Control Panel</div>
+  <h1 class="font-display text-3xl font-semibold text-ink mt-1">
+    Super Admin Dashboard
+  </h1>
+  <p class="text-slate mt-1 mb-8">SAHANANETH — full system oversight.</p>
 
-    <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div class="ledger-card tone-rust p-5">
-            <p class="eyebrow">Pending Users</p>
-            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ pending_users|length }}</p>
-        </div>
-        <div class="ledger-card tone-amber p-5">
-            <p class="eyebrow">Pending Shelters</p>
-            <p class="font-display text-2xl font-semibold text-ink mt-2">{{ pending_shelters|length }}</p>
-        </div>
-        <div class="ledger-card tone-civic p-5">
-            <p class="eyebrow">Logged in as</p>
-            <p class="font-display text-lg font-semibold text-ink mt-2">{{ current_user.username }}</p>
-        </div>
+  <!-- Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="ledger-card tone-rust p-5">
+      <p class="eyebrow">Pending Users</p>
+      <p class="font-display text-2xl font-semibold text-ink mt-2">
+        {{ pending_users|length }}
+      </p>
     </div>
+    <div class="ledger-card tone-amber p-5">
+      <p class="eyebrow">Pending Shelters</p>
+      <p class="font-display text-2xl font-semibold text-ink mt-2">
+        {{ pending_shelters|length }}
+      </p>
+    </div>
+    <div class="ledger-card tone-civic p-5">
+      <p class="eyebrow">Logged in as</p>
+      <p class="font-display text-lg font-semibold text-ink mt-2">
+        {{ current_user.username }}
+      </p>
+    </div>
+  </div>
 
-    <div class="flex gap-3 mb-8 flex-wrap">
-        <a href="/admin/procurement" class="btn-primary flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-package"/></svg>
-            View Procurement Requests
-        </a>
-        <a href="/gov/procurement" class="btn-secondary flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-clipboard"/></svg>
-            Government Procurement
-        </a>
-        <a href="/gov/warehouses" class="btn-ghost flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-warehouse"/></svg>
-            Manage Warehouses
-        </a>
-        <a href="/gov/warehouse-managers" class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white" style="background:#46566B">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-users"/></svg>
-            Warehouse Managers
-        </a>
-        <a href="/warehouse/transfers" class="btn-approve flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-truck"/></svg>
-            Stock Transfers
-        </a>
-        <a href="/warehouse/catalog" class="btn-ghost flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-clipboard"/></svg>
-            Product Catalog
-        </a>
-        <a href="/admin/users" class="btn-ghost flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-user"/></svg>
-            Manage Users
-        </a>
-        <a href="/admin/analytics" class="btn-ghost flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-chart"/></svg>
-            Analytics
-        </a>
-        <a href="/admin/announcements" class="btn-secondary flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-bell"/></svg>
-            Send Announcement
-        </a>
-        <a href="/admin/checkins" class="btn-secondary flex items-center gap-2" style="background:#B23A3A">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-alert"/></svg>
-            Safety Check-in
-        </a>
-        <a href="/admin/beneficiaries" class="btn-ghost flex items-center gap-2">
-            <svg class="icon" style="width:15px;height:15px"><use href="#icon-user"/></svg>
-            Beneficiary Directory
-        </a>
-    </div>
+  <div class="flex gap-3 mb-8 flex-wrap">
+    <a href="/admin/procurement" class="btn-primary flex items-center gap-2">
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-package" />
+      </svg>
+      Procurement Requests
+    </a>
+    <a
+      href="/admin/gov-view/procurement"
+      class="btn-secondary flex items-center gap-2"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-clipboard" />
+      </svg>
+      Gov Procurement View
+    </a>
+    <a
+      href="/admin/gov-view/warehouses"
+      class="btn-ghost flex items-center gap-2"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-warehouse" />
+      </svg>
+      Manage Warehouses
+    </a>
+    <a
+      href="/admin/gov-view/warehouse-managers"
+      class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white"
+      style="background: #46566b"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-users" />
+      </svg>
+      Warehouse Managers
+    </a>
+    <a
+      href="/admin/warehouse/transfers"
+      class="btn-approve flex items-center gap-2"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-truck" />
+      </svg>
+      Stock Transfers
+    </a>
+    <a
+      href="/admin/warehouse/catalog"
+      class="btn-ghost flex items-center gap-2"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-clipboard" />
+      </svg>
+      Product Catalog
+    </a>
+    <a href="/admin/users" class="btn-ghost flex items-center gap-2">
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-user" />
+      </svg>
+      Manage Users
+    </a>
+    <a href="/admin/analytics" class="btn-ghost flex items-center gap-2">
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-chart" />
+      </svg>
+      Analytics
+    </a>
+    <a
+      href="/admin/announcements"
+      class="btn-secondary flex items-center gap-2"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-bell" />
+      </svg>
+      Send Announcement
+    </a>
+    <a
+      href="/admin/checkins"
+      class="btn-secondary flex items-center gap-2"
+      style="background: #b23a3a"
+    >
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-alert" />
+      </svg>
+      Safety Check-in
+    </a>
+    <a href="/admin/beneficiaries" class="btn-ghost flex items-center gap-2">
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-user" />
+      </svg>
+      Beneficiary Directory
+    </a>
+    <a href="/location/map" class="btn-ghost flex items-center gap-2">
+      <svg class="icon" style="width: 15px; height: 15px">
+        <use href="#icon-pin" />
+      </svg>
+      Location Map
+    </a>
+  </div>
 
-    <!-- Pending Users -->
-    <h2 class="font-display text-lg font-semibold text-ink mb-3 flex items-center gap-2">
-        Pending User Approvals
-        <span class="status-pill status-pending">{{ pending_users|length }}</span>
-    </h2>
+  <!-- Pending Users -->
+  <h2
+    class="font-display text-lg font-semibold text-ink mb-3 flex items-center gap-2"
+  >
+    Pending User Approvals
+    <span class="status-pill status-pending">{{ pending_users|length }}</span>
+  </h2>
 
-    {% if pending_users %}
-    <div class="space-y-3 mb-8">
-        {% for user in pending_users %}
-        <div class="ledger-card tone-rust p-4 flex justify-between items-center">
-            <div>
-                <p class="font-semibold text-ink">{{ user.full_name or user.username }}</p>
-                <p class="text-sm text-slate">
-                    @{{ user.username }} —
-                    <span class="font-medium {% if user.role_level == 'gov_officer' %}text-civic{% else %}text-amber{% endif %}">
-                        {{ user.role_level.replace('_', ' ').title() }}
-                    </span>
-                </p>
-                <p class="text-xs text-slate mt-0.5 font-mono">
-                    Registered: {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
-                </p>
-            </div>
-            <div class="flex gap-2">
-                <a href="/admin/approve/user/{{ user.id }}" class="btn-approve flex items-center gap-1.5">
-                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
-                    Approve
-                </a>
-                <a href="/admin/reject/user/{{ user.id }}" class="btn-danger flex items-center gap-1.5">
-                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
-                    Reject
-                </a>
-            </div>
-        </div>
-        {% endfor %}
+  {% if pending_users %}
+  <div class="space-y-3 mb-8">
+    {% for user in pending_users %}
+    <div class="ledger-card tone-rust p-4 flex justify-between items-center">
+      <div>
+        <p class="font-semibold text-ink">
+          {{ user.full_name or user.username }}
+        </p>
+        <p class="text-sm text-slate">
+          @{{ user.username }} —
+          <span
+            class="font-medium {% if user.role_level == 'gov_officer' %}text-civic{% else %}text-amber{% endif %}"
+          >
+            {{ user.role_level.replace('_', ' ').title() }}
+          </span>
+        </p>
+        <p class="text-xs text-slate mt-0.5 font-mono">
+          Registered: {{ user.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <a
+          href="/admin/approve/user/{{ user.id }}"
+          class="btn-approve flex items-center gap-1.5"
+        >
+          <svg class="icon" style="width: 14px; height: 14px">
+            <use href="#icon-check" />
+          </svg>
+          Approve
+        </a>
+        <a
+          href="/admin/reject/user/{{ user.id }}"
+          class="btn-danger flex items-center gap-1.5"
+        >
+          <svg class="icon" style="width: 14px; height: 14px">
+            <use href="#icon-x" />
+          </svg>
+          Reject
+        </a>
+      </div>
     </div>
-    {% else %}
-    <div class="ledger-card tone-relief p-6 text-center text-slate mb-8 flex items-center justify-center gap-2">
-        <svg class="icon text-relief"><use href="#icon-check-circle"/></svg>
-        No pending user approvals.
-    </div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div
+    class="ledger-card tone-relief p-6 text-center text-slate mb-8 flex items-center justify-center gap-2"
+  >
+    <svg class="icon text-relief"><use href="#icon-check-circle" /></svg>
+    No pending user approvals.
+  </div>
+  {% endif %}
 
-    <!-- Pending Shelters -->
-    <h2 class="font-display text-lg font-semibold text-ink mb-3 flex items-center gap-2">
-        Pending Shelter Approvals
-        <span class="status-pill status-pending">{{ pending_shelters|length }}</span>
-    </h2>
+  <!-- Pending Shelters -->
+  <h2
+    class="font-display text-lg font-semibold text-ink mb-3 flex items-center gap-2"
+  >
+    Pending Shelter Approvals
+    <span class="status-pill status-pending"
+      >{{ pending_shelters|length }}</span
+    >
+  </h2>
 
-    {% if pending_shelters %}
-    <div class="space-y-3">
-        {% for shelter in pending_shelters %}
-        <div class="ledger-card tone-amber p-4 flex justify-between items-center">
-            <div>
-                <p class="font-semibold text-ink">{{ shelter.shelter_name }}</p>
-                <p class="text-sm text-slate">
-                    Capacity: {{ shelter.maximum_capacity }} persons
-                    {% if shelter.address %} · {{ shelter.address }}{% endif %}
-                </p>
-                <p class="text-xs text-slate mt-0.5 font-mono">
-                    Submitted by: {{ shelter.created_by.username }} · {{ shelter.created_at.strftime('%Y-%m-%d %H:%M') }}
-                </p>
-                {% if shelter.latitude and shelter.longitude %}
-                <p class="text-xs text-slate flex items-center gap-1 mt-0.5 font-mono">
-                    <svg class="icon" style="width:12px;height:12px"><use href="#icon-pin"/></svg>
-                    {{ shelter.latitude }}, {{ shelter.longitude }}
-                </p>
-                {% endif %}
-            </div>
-            <div class="flex gap-2">
-                <a href="/admin/approve/shelter/{{ shelter.id }}" class="btn-approve flex items-center gap-1.5">
-                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-check"/></svg>
-                    Approve
-                </a>
-                <a href="/admin/reject/shelter/{{ shelter.id }}" class="btn-danger flex items-center gap-1.5">
-                    <svg class="icon" style="width:14px;height:14px"><use href="#icon-x"/></svg>
-                    Reject
-                </a>
-            </div>
-        </div>
-        {% endfor %}
+  {% if pending_shelters %}
+  <div class="space-y-3">
+    {% for shelter in pending_shelters %}
+    <div class="ledger-card tone-amber p-4 flex justify-between items-center">
+      <div>
+        <p class="font-semibold text-ink">{{ shelter.shelter_name }}</p>
+        <p class="text-sm text-slate">
+          Capacity: {{ shelter.maximum_capacity }} persons {% if shelter.address
+          %} · {{ shelter.address }}{% endif %}
+        </p>
+        <p class="text-xs text-slate mt-0.5 font-mono">
+          Submitted by: {{ shelter.created_by.username }} · {{
+          shelter.created_at.strftime('%Y-%m-%d %H:%M') }}
+        </p>
+        {% if shelter.latitude and shelter.longitude %}
+        <p class="text-xs text-slate flex items-center gap-1 mt-0.5 font-mono">
+          <svg class="icon" style="width: 12px; height: 12px">
+            <use href="#icon-pin" />
+          </svg>
+          {{ shelter.latitude }}, {{ shelter.longitude }}
+        </p>
+        {% endif %}
+      </div>
+      <div class="flex gap-2">
+        <a
+          href="/admin/approve/shelter/{{ shelter.id }}"
+          class="btn-approve flex items-center gap-1.5"
+        >
+          <svg class="icon" style="width: 14px; height: 14px">
+            <use href="#icon-check" />
+          </svg>
+          Approve
+        </a>
+        <a
+          href="/admin/reject/shelter/{{ shelter.id }}"
+          class="btn-danger flex items-center gap-1.5"
+        >
+          <svg class="icon" style="width: 14px; height: 14px">
+            <use href="#icon-x" />
+          </svg>
+          Reject
+        </a>
+      </div>
     </div>
-    {% else %}
-    <div class="ledger-card tone-relief p-6 text-center text-slate">
-        No pending shelter approvals.
-    </div>
-    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="ledger-card tone-relief p-6 text-center text-slate">
+    No pending shelter approvals.
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

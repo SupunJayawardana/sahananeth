@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Location Map{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="max-w-6xl mx-auto mt-6 px-4 pb-16">
+    <div class="flex justify-between items-center mb-4">
+        <div>
+            <h1 class="font-display text-2xl font-semibold text-ink">Location Map</h1>
+            <p class="text-slate text-sm mt-1">
+                {{ shelters|length }} shelters ·
+                {{ citizens|length }} citizens with location ·
+                {{ beneficiaries|length }} beneficiaries
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <a href="javascript:history.back()" class="btn-ghost text-sm">← Back</a>
+        </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="flex gap-3 mb-4 flex-wrap">
+        <label class="flex items-center gap-2 text-sm text-ink cursor-pointer">
+            <input type="checkbox" id="show-shelters" checked
+                class="rounded"> Shelters
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink cursor-pointer">
+            <input type="checkbox" id="show-citizens" checked
+                class="rounded"> Citizens
+        </label>
+        <label class="flex items-center gap-2 text-sm text-ink cursor-pointer">
+            <input type="checkbox" id="show-beneficiaries" checked
+                class="rounded"> Beneficiaries
+        </label>
+        <button onclick="locateMe()"
+            class="btn-ghost text-sm flex items-center gap-1.5">
+            📍 My Location
+        </button>
+    </div>
+
+    <!-- Map -->
+    <div id="location-map" class="w-full rounded-xl border border-line"
+        style="height: 520px;"></div>
+
+    <!-- Legend -->
+    <div class="flex gap-6 mt-3 text-xs text-slate">
+        <span class="flex items-center gap-1.5">
+            <span style="display:inline-block;width:12px;height:12px;background:#ef4444;border-radius:50%"></span>
+            Shelter
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span style="display:inline-block;width:12px;height:12px;background:#2563eb;border-radius:50%"></span>
+            Citizen (live location)
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:50%"></span>
+            Beneficiary (verified)
+        </span>
+        <span class="flex items-center gap-1.5">
+            <span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:50%"></span>
+            Beneficiary (unverified)
+        </span>
+    </div>
+</div>
+
+<script>
+var map = L.map('location-map').setView([7.8731, 80.7718], 8);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+function makeIcon(color, shape) {
+    var borderRadius = shape === 'circle' ? '50%' : '3px';
+    return L.divIcon({
+        html: '<div style="background:' + color + ';width:14px;height:14px;border-radius:' + borderRadius + ';border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+        iconSize: [14, 14], iconAnchor: [7, 7], className: ''
+    });
+}
+
+var shelterLayer = L.layerGroup();
+var citizenLayer = L.layerGroup();
+var beneficiaryLayer = L.layerGroup();
+
+// Shelters
+var shelters = {{ shelters | tojson(default=lambda o: {
+    'id': o.id,
+    'name': o.shelter_name,
+    'lat': o.latitude,
+    'lng': o.longitude,
+    'capacity': o.maximum_capacity,
+    'occupancy': o.current_occupancy_count
+} if o.latitude else None) }};
+
+{% for s in shelters %}
+{% if s.latitude and s.longitude %}
+L.marker([{{ s.latitude }}, {{ s.longitude }}], {icon: makeIcon('#ef4444', 'circle')})
+ .bindPopup('<b>🏠 {{ s.shelter_name }}</b><br>Occupancy: {{ s.current_occupancy_count }}/{{ s.maximum_capacity }}')
+ .addTo(shelterLayer);
+{% endif %}
+{% endfor %}
+
+// Citizens with location
+{% for c in citizens %}
+{% if c.latitude and c.longitude %}
+L.marker([{{ c.latitude }}, {{ c.longitude }}], {icon: makeIcon('#2563eb', 'circle')})
+ .bindPopup(
+    '<b>👤 {{ c.full_name or c.username }}</b>' +
+    '<br>@{{ c.username }}' +
+    '<br><span style="color:#9ca3af;font-size:11px">Updated: {{ c.location_updated_at.strftime("%Y-%m-%d %H:%M") if c.location_updated_at else "Unknown" }}</span>' +
+    '<br><a href="/admin/users" style="color:#2563eb;font-size:12px">View Profile</a>'
+ )
+ .addTo(citizenLayer);
+{% endif %}
+{% endfor %}
+
+// Beneficiaries
+{% for b in beneficiaries %}
+{% if b.latitude and b.longitude %}
+L.marker([{{ b.latitude }}, {{ b.longitude }}],
+    {icon: makeIcon('{{ "#16a34a" if b.location_verified else "#f59e0b" }}', 'circle')})
+ .bindPopup(
+    '<b>🪪 {{ b.full_name }}</b>' +
+    '<br>ID: {{ b.identification_number }}' +
+    '<br>Verified: {{ "✅ Yes" if b.location_verified else "⚠️ No" }}' +
+    {% if b.shelter %}'<br>Shelter: {{ b.shelter.shelter_name }}' +{% endif %}
+    '<br><span style="color:#9ca3af;font-size:11px">Updated: {{ b.location_updated_at.strftime("%Y-%m-%d %H:%M") if b.location_updated_at else "Unknown" }}</span>'
+ )
+ .addTo(beneficiaryLayer);
+{% endif %}
+{% endfor %}
+
+shelterLayer.addTo(map);
+citizenLayer.addTo(map);
+beneficiaryLayer.addTo(map);
+
+// Toggle checkboxes
+document.getElementById('show-shelters').addEventListener('change', function() {
+    this.checked ? shelterLayer.addTo(map) : map.removeLayer(shelterLayer);
+});
+document.getElementById('show-citizens').addEventListener('change', function() {
+    this.checked ? citizenLayer.addTo(map) : map.removeLayer(citizenLayer);
+});
+document.getElementById('show-beneficiaries').addEventListener('change', function() {
+    this.checked ? beneficiaryLayer.addTo(map) : map.removeLayer(beneficiaryLayer);
+});
+
+// Locate me
+function locateMe() {
+    if (!navigator.geolocation) return alert('Geolocation not supported.');
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        var latlng = [pos.coords.latitude, pos.coords.longitude];
+        map.setView(latlng, 13);
+        L.marker(latlng, {icon: makeIcon('#7c3aed', 'circle')})
+         .addTo(map)
+         .bindPopup('<b>📍 Your Location</b>').openPopup();
+    });
+}
+</script>
+{% endblock %}
