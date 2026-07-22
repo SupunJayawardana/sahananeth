@@ -130,7 +130,8 @@ def _build_sources():
                                  'get': lambda r: days_since(r.created_at) if r.status != 'resolved' else None},
                 'created_at':  {'label': 'Submitted', 'type': 'date', 'get': lambda r: r.created_at},
             },
-            'location': lambda r: ((r.citizen.latitude, r.citizen.longitude) if r.citizen else (None, None)),
+            'location': lambda r: (r.latitude, r.longitude) if r.latitude is not None else (
+                (r.citizen.latitude, r.citizen.longitude) if r.citizen else (None, None)),
             'columns': [
                 ('Citizen', lambda r: (r.citizen.full_name or r.citizen.username) if r.citizen else '—'),
                 ('Description', lambda r: r.description),

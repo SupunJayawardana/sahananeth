@@ -59,6 +59,57 @@ def lookup_users():
     ]})
 
 
+@api_bp.route('/citizens/<int:user_id>/request-location', methods=['POST'])
+@login_required
+def request_citizen_location(user_id):
+    """
+    Asks the citizen — over Telegram — to share their actual current
+    location, rather than a staff member guessing or substituting their
+    own device's GPS. If an aid_request_id is given, the response also
+    gets stamped onto that specific request once it comes in.
+    """
+    if current_user.role_level not in STAFF_ROLES:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    from app.models.user import User
+    from app.models.telegram_conversation_state import TelegramConversationState
+    from app.services import telegram_api
+    from app.extensions import db
+
+    target = User.query.get_or_404(user_id)
+    if target.role_level != 'citizen':
+        return jsonify({'error': 'Location requests are only for citizen accounts'}), 400
+    if not target.telegram_chat_id:
+        return jsonify({'error': f'{target.full_name or target.username} has not connected Telegram, '
+                                 f'so they can\'t be asked this way.'}), 400
+
+    data = request.get_json(silent=True) or {}
+    aid_request_id = data.get('aid_request_id')
+
+    state = TelegramConversationState.query.filter_by(chat_id=target.telegram_chat_id).first()
+    if not state:
+        state = TelegramConversationState(chat_id=target.telegram_chat_id)
+        db.session.add(state)
+    state.flow_name = 'awaiting_location'
+    state.step = 'waiting'
+    state.set_data({'aid_request_id': aid_request_id, 'requested_by_id': current_user.id})
+
+    ok, err = telegram_api.send_location_request(
+        target.telegram_chat_id,
+        f'Hi {target.full_name or target.username}, {current_user.full_name or current_user.username} '
+        f'from SAHANANETH is asking for your current location to help respond faster. '
+        f'Tap the button below to share it.'
+    )
+    if not ok:
+        return jsonify({'error': f'Could not reach them on Telegram: {err}'}), 502
+
+    db.session.commit()
+    from app.services.activity_service import log_activity
+    log_activity('user', f'{current_user.username} asked {target.full_name or target.username} to share their location.',
+                 user_id=current_user.id)
+    return jsonify({'ok': True})
+
+
 @api_bp.route('/citizens/<int:user_id>/location', methods=['POST'])
 @login_required
 def set_citizen_location(user_id):

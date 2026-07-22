@@ -172,5 +172,40 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-location-picker]').forEach(init);
+    document.querySelectorAll('[data-request-location-btn]').forEach(initRequestButton);
   });
+
+  /**
+   * "Ask citizen to share their location" button — sends a Telegram
+   * message with the native location-share prompt (see
+   * telegram_api.send_location_request). Separate from the map picker
+   * above: this asks the citizen's own device for their own position,
+   * rather than letting staff drop a pin on someone else's behalf.
+   */
+  function initRequestButton(btn) {
+    const statusEl = btn.parentElement.querySelector('[data-request-location-status]');
+    btn.addEventListener('click', () => {
+      const apiUrl = btn.getAttribute('data-api-url');
+      const aidRequestId = btn.getAttribute('data-aid-request-id') || null;
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Asking…';
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ aid_request_id: aidRequestId }),
+      })
+        .then((r) => r.json().then((data) => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          if (!ok) throw new Error(data.error || 'Could not send the request');
+          btn.textContent = '✅ Asked — waiting for their reply';
+          if (statusEl) { statusEl.textContent = 'They\u2019ll get a Telegram message asking them to share their location.'; }
+        })
+        .catch((err) => {
+          btn.disabled = false;
+          btn.textContent = original;
+          if (statusEl) { statusEl.textContent = err.message; statusEl.classList.add('text-rust'); }
+        });
+    });
+  }
 })();

@@ -531,9 +531,38 @@ def handle_location(chat_id, latitude, longitude):
     if not user:
         _reply(chat_id, "Thanks — send /register first so I can attach this to your account.")
         return
+
     user.latitude = latitude
     user.longitude = longitude
     user.location_updated_at = datetime.utcnow()
+
+    # If a staff member asked for this (via the "Ask citizen to share
+    # location" button on an aid request), also stamp it onto that
+    # specific request, and let the staff member know it came in.
+    state = _get_state(chat_id)
+    if state and state.flow_name == 'awaiting_location':
+        data = state.get_data()
+        aid_request_id = data.get('aid_request_id')
+        requested_by_id = data.get('requested_by_id')
+        if aid_request_id:
+            from app.models.citizen_aid_request import CitizenAidRequest
+            aid = CitizenAidRequest.query.get(aid_request_id)
+            if aid:
+                aid.latitude = latitude
+                aid.longitude = longitude
+        _clear_state(chat_id)
+        db.session.commit()
+        if requested_by_id:
+            from app.models.user import User as UserModel
+            from app.services.notification_service import notify_user
+            requester = UserModel.query.get(requested_by_id)
+            if requester:
+                notify_user(requester,
+                            f'{user.full_name or user.username} shared their location — it has been updated.',
+                            title='Location received', urgency='info')
+        _reply(chat_id, "📍 Got it — thanks, this has been shared with the team helping you.")
+        return
+
     db.session.commit()
     _reply(chat_id, "📍 Location saved. This helps us find the nearest shelter and dispatch help to you faster.")
 

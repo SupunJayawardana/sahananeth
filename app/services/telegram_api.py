@@ -115,6 +115,23 @@ def edit_message_text(chat_id, message_id, text, parse_mode='HTML', reply_markup
         return False, str(e)
 
 
+def send_location_request(chat_id, text):
+    """
+    Sends a message with Telegram's native "Share Location" prompt — a real
+    reply keyboard (not an inline one), so the citizen's own client shows
+    the standard location-sharing UI and their device's actual current
+    GPS position comes back as a message.location update. This is what
+    makes "ask the citizen where they are" possible at all — a staff
+    member's own device location is never a stand-in for the citizen's.
+    """
+    reply_markup = {
+        'keyboard': [[{'text': '📍 Share my current location', 'request_location': True}]],
+        'resize_keyboard': True,
+        'one_time_keyboard': True,
+    }
+    return send_message(chat_id, text, reply_markup=reply_markup)
+
+
 def get_updates(offset=None, timeout=25):
     """Long-polling fetch of new updates. Used only by the local polling script."""
     if not is_configured():

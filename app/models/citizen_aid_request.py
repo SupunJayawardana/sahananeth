@@ -18,6 +18,8 @@ class CitizenAidRequest(db.Model):
     country = db.Column(db.String(100), nullable=True)
     region = db.Column(db.String(100), nullable=True)
     city = db.Column(db.String(100), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     status = db.Column(
         db.Enum('pending', 'in_progress', 'resolved', name='aid_request_status_enum'),
         default='pending', nullable=False

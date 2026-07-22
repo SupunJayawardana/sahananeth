@@ -38,22 +38,38 @@
                         {{ aid.city or '—' }}, {{ aid.region or '—' }}, {{ aid.country or '—' }}
                         · {{ aid.created_at.strftime('%Y-%m-%d %H:%M') }}
                     </p>
-                    {% if aid.citizen and aid.citizen.latitude %}
+                    {% set loc_lat = aid.latitude if aid.latitude is not none else (aid.citizen.latitude if aid.citizen else none) %}
+                    {% set loc_lng = aid.longitude if aid.longitude is not none else (aid.citizen.longitude if aid.citizen else none) %}
+                    {% if loc_lat %}
                     <p class="text-xs text-slate mt-0.5 font-mono flex items-center gap-1">
                         <svg class="icon" style="width:12px;height:12px"><use href="#icon-pin"/></svg>
-                        {{ aid.citizen.latitude }}, {{ aid.citizen.longitude }}
+                        {{ loc_lat }}, {{ loc_lng }}
+                        {{ '(from this request)' if aid.latitude is not none else '(from their profile)' }}
                     </p>
                     {% endif %}
                     {% if aid.citizen %}
-                    <details class="mt-2">
+                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                        {% if aid.citizen.telegram_linked %}
+                        <button type="button" data-request-location-btn
+                            data-api-url="/api/citizens/{{ aid.citizen.id }}/request-location"
+                            data-aid-request-id="{{ aid.id }}"
+                            class="btn-secondary !py-1.5 !px-3 !text-xs">
+                            📨 Ask them to share their location
+                        </button>
+                        {% else %}
+                        <p class="text-xs text-slate italic">Not connected to Telegram — can't be asked directly.</p>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate mt-1" data-request-location-status></p>
+                    <details class="mt-1">
                         <summary class="cursor-pointer text-xs font-semibold text-civic select-none">
-                            {{ 'Update location' if aid.citizen.latitude else '📍 Confirm location' }}
+                            🖊️ Set location manually <span class="font-normal text-slate">(only if you're physically with them)</span>
                         </summary>
                         <div class="mt-2 max-w-sm" data-location-picker data-mode="api"
                             data-api-url="/api/citizens/{{ aid.citizen.id }}/location"
                             data-on-success="reload"
-                            data-initial-lat="{{ aid.citizen.latitude or '' }}"
-                            data-initial-lng="{{ aid.citizen.longitude or '' }}"></div>
+                            data-initial-lat="{{ loc_lat or '' }}"
+                            data-initial-lng="{{ loc_lng or '' }}"></div>
                     </details>
                     {% endif %}
                 </div>
